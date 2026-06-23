@@ -142,6 +142,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         "query:'', activeChat:null, draft:'', emojiOpen:false, attachment:null,"
       );
       t = t.replace(
+        `          <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:24px;font-size:12px;color:{{ t.textSecondary }}"><span style="width:14px;height:14px;display:block">{{ ic.shield }}</span>Hesabın bu cihazda güvenle saklanır</div>`,
+        `          <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:24px;font-size:12px;color:{{ t.textSecondary }}"><span style="width:14px;height:14px;display:block">{{ ic.shield }}</span>Hesabın bu cihazda güvenle saklanır</div>
+          <div style="text-align:center;margin-top:10px;font-size:12.5px;font-weight:700;color:{{ t.accent }}">Geliştirici: Ömer Champion</div>`
+      );
+      t = t.replace(
         `            <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:21px;height:21px;display:block">{{ ic.video }}</span></button>
             <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:20px;height:20px;display:block">{{ ic.phone }}</span></button>`,
         ''
