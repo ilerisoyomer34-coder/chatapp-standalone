@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(e => console.log("SW kayıt hatası:", e));
+        navigator.serviceWorker.register("sw.js").catch(e => console.log("SW kayıt hatası:", e));
       });
     }
   </script>
