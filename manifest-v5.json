@@ -11,13 +11,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/chatapp-standalone/icons/icon-192.png",
+      "src": "/chatapp-standalone/icons/icon-v5-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/chatapp-standalone/icons/icon-512.png",
+      "src": "/chatapp-standalone/icons/icon-v5-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

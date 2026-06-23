@@ -6,9 +6,9 @@ const ASSETS = [
   APP_SHELL,
   APP_ROOT + 'manifest.json',
   APP_ROOT + 'manifest-v5.json',
-  APP_ROOT + 'icons/icon-180.png',
-  APP_ROOT + 'icons/icon-192.png',
-  APP_ROOT + 'icons/icon-512.png',
+  APP_ROOT + 'icons/icon-v5-180.png',
+  APP_ROOT + 'icons/icon-v5-192.png',
+  APP_ROOT + 'icons/icon-v5-512.png',
 ];
 
 self.addEventListener('install', (event) => {
