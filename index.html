@@ -135,6 +135,111 @@ document.addEventListener('DOMContentLoaded', async function() {
         '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;background:',
         '<div class="cx-auth-form" style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;background:'
       );
+      // Add interactive emoji and attachment controls to the generated chat UI.
+      t = t.replace(
+        "query:'', activeChat:null, draft:'',",
+        "query:'', activeChat:null, draft:'', emojiOpen:false, attachment:null,"
+      );
+      t = t.replace(
+        `            <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:21px;height:21px;display:block">{{ ic.video }}</span></button>
+            <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:20px;height:20px;display:block">{{ ic.phone }}</span></button>`,
+        ''
+      );
+      t = t.replace(
+        `                  <span style="word-break:break-word">{{ m.text }}</span>`,
+        `                  <span style="word-break:break-word">{{ m.text }}</span>
+                  <sc-if value="{{ m.hasAttachment }}" hint-placeholder-val="{{ false }}">
+                    <a href="{{ m.fileData }}" download="{{ m.fileName }}" style="margin-top:6px;padding:9px 10px;border-radius:9px;background:rgba(128,128,128,.13);display:flex;align-items:center;gap:9px;color:inherit;text-decoration:none;max-width:280px">
+                      <span style="width:22px;height:22px;display:block;flex-shrink:0">{{ ic.paperclip }}</span>
+                      <span style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.fileName }}</b><small style="opacity:.72">{{ m.fileSize }}</small></span>
+                    </a>
+                  </sc-if>`
+      );
+      t = t.replace(
+        `          <!-- input -->
+          <div style="flex-shrink:0;padding:9px clamp(10px,6%,70px) 12px;background:{{ t.chatBg }};display:flex;align-items:center;gap:9px">
+            <div style="flex:1;display:flex;align-items:center;gap:9px;background:{{ t.bg }};border-radius:24px;padding:0 8px 0 15px;height:48px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+              <span style="width:22px;height:22px;display:block;color:{{ t.textSecondary }};flex-shrink:0">{{ ic.smile }}</span>
+              <input value="{{ draft }}" onchange="{{ onDraft }}" onkeydown="{{ onMsgKey }}" placeholder="Güvenli mesaj yaz…" style="flex:1;border:none;outline:none;background:transparent;font-size:15px;color:{{ t.textPrimary }};font-family:inherit">
+              <span style="width:22px;height:22px;display:block;color:{{ t.textSecondary }};flex-shrink:0">{{ ic.paperclip }}</span>
+            </div>
+            <button onclick="{{ send }}" class="cx-tap" style="width:48px;height:48px;border-radius:50%;border:none;background:{{ t.accent }};display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 4px 12px {{ t.accentShadow }}"><span style="width:22px;height:22px;display:block">{{ sendIcon }}</span></button>
+          </div>`,
+        `          <!-- input -->
+          <div style="flex-shrink:0;padding:9px clamp(10px,6%,70px) 12px;background:{{ t.chatBg }};display:flex;flex-direction:column;gap:8px;position:relative">
+            <sc-if value="{{ showEmojiPicker }}" hint-placeholder-val="{{ false }}">
+              <div class="cx-scroll" style="position:absolute;left:clamp(10px,6%,70px);bottom:69px;width:min(340px,calc(100% - 20px));max-height:230px;overflow-y:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:10px;background:{{ t.bg }};border:1px solid {{ t.divider }};border-radius:16px;box-shadow:0 12px 38px rgba(0,0,0,.24);z-index:8">
+                <sc-for list="{{ emojis }}" as="e" hint-placeholder-count="0"><button onclick="{{ e.onPick }}" class="cx-tap" style="height:36px;border:none;border-radius:8px;background:transparent;font-size:23px;display:flex;align-items:center;justify-content:center">{{ e.char }}</button></sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasAttachment }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:{{ t.bg }};border:1px solid {{ t.divider }};border-radius:12px;color:{{ t.textPrimary }}">
+                <span style="width:20px;height:20px;display:block;color:{{ t.accent }};flex-shrink:0">{{ ic.paperclip }}</span>
+                <span style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ attachmentName }} · {{ attachmentSize }}</span>
+                <button onclick="{{ removeAttachment }}" class="cx-tap" aria-label="Dosyayı kaldır" style="width:30px;height:30px;border:none;border-radius:50%;background:{{ t.surface }};color:{{ t.textSecondary }};display:flex;align-items:center;justify-content:center"><span style="width:16px;height:16px;display:block">{{ ic.x }}</span></button>
+              </div>
+            </sc-if>
+            <div style="display:flex;align-items:center;gap:9px">
+              <div style="flex:1;display:flex;align-items:center;gap:9px;background:{{ t.bg }};border-radius:24px;padding:0 8px;height:48px;box-shadow:0 1px 3px rgba(0,0,0,.08);min-width:0">
+                <button onclick="{{ toggleEmoji }}" class="cx-tap" aria-label="Emoji seç" style="width:36px;height:40px;border:none;background:transparent;color:{{ t.textSecondary }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="width:22px;height:22px;display:block">{{ ic.smile }}</span></button>
+                <input value="{{ draft }}" onchange="{{ onDraft }}" onkeydown="{{ onMsgKey }}" placeholder="Güvenli mesaj yaz…" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:15px;color:{{ t.textPrimary }};font-family:inherit">
+                <input ref="{{ fileRef }}" type="file" onchange="{{ onFile }}" style="display:none">
+                <button onclick="{{ chooseFile }}" class="cx-tap" aria-label="Dosya seç" style="width:36px;height:40px;border:none;background:transparent;color:{{ t.textSecondary }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="width:22px;height:22px;display:block">{{ ic.paperclip }}</span></button>
+              </div>
+              <button onclick="{{ send }}" class="cx-tap" style="width:48px;height:48px;border-radius:50%;border:none;background:{{ t.accent }};display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 4px 12px {{ t.accentShadow }}"><span style="width:22px;height:22px;display:block">{{ sendIcon }}</span></button>
+            </div>
+          </div>`
+      );
+      t = t.replace(
+        `  closeChat() { this.setState({ activeChat:null }); }
+  onDraft(e) { this.setState({ draft:e.target.value }); }`,
+        `  closeChat() { this.setState({ activeChat:null, emojiOpen:false, attachment:null }); }
+  onDraft(e) { this.setState({ draft:e.target.value }); }
+  toggleEmoji() { this.setState(s => ({ emojiOpen:!s.emojiOpen })); }
+  pickEmoji(emoji) { this.setState(s => ({ draft:s.draft + emoji, emojiOpen:false })); }
+  chooseFile() { this.setState({ emojiOpen:false }); if (this._file) { this._file.value=''; this._file.click(); } }
+  onFile(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { this.toast('Dosya en fazla 5 MB olabilir.', 'no'); return; }
+    const reader = new FileReader();
+    reader.onload = () => this.setState({ attachment:{ name:file.name, type:file.type||'application/octet-stream', size:file.size, data:reader.result } });
+    reader.onerror = () => this.toast('Dosya okunamadı.', 'no');
+    reader.readAsDataURL(file);
+  }
+  removeAttachment() { this.setState({ attachment:null }); }
+  formatSize(bytes) { if (bytes < 1024) return bytes+' B'; if (bytes < 1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(1)+' MB'; }`
+      );
+      t = t.replace(
+        `    const v = this.state.draft.trim(); if (!v) return;`,
+        `    const v = this.state.draft.trim(), attachment = this.state.attachment; if (!v && !attachment) return;`
+      );
+      t = t.replace(
+        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, ts:Date.now() });`,
+        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, ts:Date.now() });`
+      );
+      t = t.replace(
+        `    this.setState({ draft:'' });`,
+        `    this.setState({ draft:'', attachment:null, emojiOpen:false });`
+      );
+      t = t.replace(
+        `      if (last && !last.system) preview = (last.from === me ? 'Sen: ' : '') + last.text;`,
+        `      if (last && !last.system) preview = (last.from === me ? 'Sen: ' : '') + (last.text || (last.attachment ? '📎 '+last.attachment.name : ''));`
+      );
+      t = t.replace(
+        `      time: this.fmtTime(m.ts), ticks: m.from===me })) : [];`,
+        `      time: this.fmtTime(m.ts), ticks: m.from===me, hasAttachment:!!m.attachment,
+      fileName:m.attachment ? m.attachment.name : '', fileData:m.attachment ? m.attachment.data : '',
+      fileSize:m.attachment ? this.formatSize(m.attachment.size||0) : '' })) : [];`
+      );
+      t = t.replace(
+        `      messages: acMsgs, draft:s.draft, onDraft:e => this.onDraft(e), onMsgKey:e => this.onMsgKey(e), send:() => this.send(),
+      sendIcon: s.draft.trim() ? ic.send : ic.smile, msgRef:el => { this._msg = el; }, closeChat:() => this.closeChat(),`,
+        `      messages: acMsgs, draft:s.draft, onDraft:e => this.onDraft(e), onMsgKey:e => this.onMsgKey(e), send:() => this.send(),
+      emojis:'😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🤭 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🤢 🤮 🤧 😷 🤒 🤕 👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👋 🤚 🖐️ ✋ 👏 🙌 👐 🤲 🤝 🙏 💪 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💯 🔥 ⭐ 🎉 🎊 ✅ ❌ ⚽ 🏀 🎮 🚗 ✈️ 🌍 ☀️ 🌙 🍎 🍕 🎂 ☕'.split(' ').map(e => ({ char:e, onPick:() => this.pickEmoji(e) })),
+      showEmojiPicker:s.emojiOpen, toggleEmoji:() => this.toggleEmoji(), fileRef:el => { this._file=el; }, chooseFile:() => this.chooseFile(), onFile:e => this.onFile(e),
+      hasAttachment:!!s.attachment, attachmentName:s.attachment?s.attachment.name:'', attachmentSize:s.attachment?this.formatSize(s.attachment.size):'', removeAttachment:() => this.removeAttachment(),
+      sendIcon: (s.draft.trim() || s.attachment) ? ic.send : ic.smile, msgRef:el => { this._msg = el; }, closeChat:() => this.closeChat(),`
+      );
       // The click interceptor owns every anchor click (not a <base target>):
       // a blanket <base target="_parent"> would also redirect form submissions
       // and tear down the wrapper. Non-# links navigate the parent to the
