@@ -1,10 +1,11 @@
-const CACHE_NAME = 'chatapp-v4';
+const CACHE_NAME = 'chatapp-v5';
 const APP_ROOT = '/chatapp-standalone/';
 const APP_SHELL = APP_ROOT + 'index.html';
 const ASSETS = [
   APP_ROOT,
   APP_SHELL,
   APP_ROOT + 'manifest.json',
+  APP_ROOT + 'manifest-v5.json',
   APP_ROOT + 'icons/icon-180.png',
   APP_ROOT + 'icons/icon-192.png',
   APP_ROOT + 'icons/icon-512.png',
