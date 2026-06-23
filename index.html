@@ -12,7 +12,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #faf9f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    html, body { width: 100%; min-width: 0; min-height: 100%; overflow: hidden; }
+    body { background: #faf9f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
     #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
     #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #faf9f5; z-index: 9999; }
     #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
@@ -124,6 +125,16 @@ document.addEventListener('DOMContentLoaded', async function() {
       let t = pages[id];
       for (const uuid of uuids) t = t.split(uuid).join(blobUrls[uuid]);
       t = t.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '');
+      // Mark the app shell and auth form so the bundled page can adapt to
+      // dynamic mobile viewport heights without changing its generated code.
+      t = t.replace(
+        '<div style="width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;',
+        '<div class="cx-app-root" style="width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;'
+      );
+      t = t.replace(
+        '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;background:',
+        '<div class="cx-auth-form" style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;background:'
+      );
       // The click interceptor owns every anchor click (not a <base target>):
       // a blanket <base target="_parent"> would also redirect form submissions
       // and tear down the wrapper. Non-# links navigate the parent to the
@@ -168,7 +179,19 @@ document.addEventListener('DOMContentLoaded', async function() {
           '});' : '');
       // Defuse any script end-tag sequence in the content (resource ids, page
       // ids) before wrapping — same escape level as every sibling JSON island.
-      var headScript = '<script>' +
+      var responsiveStyle = '<style>' +
+        'html,body,x-dc{width:100%;height:100%;min-width:0;overflow:hidden}' +
+        'x-dc{display:block}' +
+        '.cx-app-root{width:100%!important;max-width:100vw;height:100vh!important;height:100dvh!important;min-width:0}' +
+        '@media(max-width:859px){' +
+          '.cx-auth-form{align-items:flex-start!important;min-width:0;overflow-x:hidden!important;overflow-y:auto!important;' +
+            'padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom))!important;' +
+            '-webkit-overflow-scrolling:touch}' +
+          '.cx-auth-form>div{width:100%!important;max-width:380px!important;min-width:0;margin:auto}' +
+          'input,button{max-width:100%;min-width:0}' +
+        '}' +
+        '</style>';
+      var headScript = responsiveStyle + '<script>' +
         headContent.split('</' + 'script').join('<\\/' + 'script') +
         '</' + 'script>';
       // Inject after <head> so the DOCTYPE stays first; prepending the script
