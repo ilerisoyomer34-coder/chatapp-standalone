@@ -2,21 +2,22 @@
   "name": "ChatApp",
   "short_name": "ChatApp",
   "description": "Standalone Chat Application",
-  "start_url": "./",
-  "scope": "./",
+  "id": "/chatapp-standalone/",
+  "start_url": "/chatapp-standalone/",
+  "scope": "/chatapp-standalone/",
   "display": "standalone",
   "background_color": "#faf9f5",
   "theme_color": "#075E54",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/chatapp-standalone/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/chatapp-standalone/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

@@ -1,11 +1,13 @@
-const CACHE_NAME = 'chatapp-v2';
+const CACHE_NAME = 'chatapp-v3';
+const APP_ROOT = '/chatapp-standalone/';
+const APP_SHELL = APP_ROOT + 'index.html';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icons/icon-180.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  APP_ROOT,
+  APP_SHELL,
+  APP_ROOT + 'manifest.json',
+  APP_ROOT + 'icons/icon-180.png',
+  APP_ROOT + 'icons/icon-192.png',
+  APP_ROOT + 'icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -25,6 +27,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => response.ok ? response : caches.match(APP_SHELL))
+        .catch(() => caches.match(APP_SHELL))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
