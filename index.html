@@ -260,11 +260,40 @@ document.addEventListener('DOMContentLoaded', async function() {
       );
       t = t.replace(
         `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, ts:Date.now() });`,
-        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, seenBy:[me], ts:Date.now() });`
+        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, ts:Date.now() });`
       );
       t = t.replace(
         `    this.setState({ draft:'' });`,
         `    this.setState({ draft:'', attachment:null, emojiOpen:false });`
+      );
+      t = t.replace(
+        `    const chat = db.chats.find(c => c.id === cid); if (!chat) return;
+    if (!db.messages[cid]) db.messages[cid] = [];
+    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, ts:Date.now() });
+    const other = chat.members.find(u => u !== me);
+    if (!chat.unread) chat.unread = {};
+    chat.unread[other] = (chat.unread[other]||0) + 1;
+    chat.unread[me] = 0;
+    this.setState({ draft:'', attachment:null, emojiOpen:false });
+    this.saveDB(db);`,
+        `    const chatIndex = db.chats.findIndex(c => c.id === cid);
+    const chat = db.chats[chatIndex]; if (!chat) return;
+    if (!db.messages[cid]) db.messages[cid] = [];
+    const message = { id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, ts:Date.now() };
+    db.messages[cid].push(message);
+    const other = chat.members.find(u => u !== me);
+    if (!chat.unread) chat.unread = {};
+    chat.unread[other] = (chat.unread[other]||0) + 1;
+    chat.unread[me] = 0;
+    this.setState({ db, draft:'', attachment:null, emojiOpen:false });
+    if (!this.fdb) { this.toast('Mesaj gönderilemedi: bağlantı yok.', 'no'); return; }
+    const updates = {};
+    updates['db/messages/' + cid + '/' + message.id] = message;
+    updates['db/chats/' + chatIndex] = chat;
+    this.fdb.ref().update(updates).catch(e => {
+      console.warn('send message', e);
+      this.toast('Mesaj gönderilemedi. Bağlantını kontrol et.', 'no');
+    });`
       );
       t = t.replace(
         `      if (last && !last.system) preview = (last.from === me ? 'Sen: ' : '') + last.text;`,
@@ -273,29 +302,14 @@ document.addEventListener('DOMContentLoaded', async function() {
       t = t.replace(
         `      time: this.fmtTime(m.ts), ticks: m.from===me })) : [];`,
         `      time: this.fmtTime(m.ts), ticks: m.from===me, hasAttachment:!!m.attachment,
-      tickIcon:(m.seenBy||[]).includes(ac.members.find(u => u !== me)) ? ic.checkCheck : ic.check,
-      tickColor:(m.seenBy||[]).includes(ac.members.find(u => u !== me)) ? t.readTick : t.timeColor,
+      tickIcon:(ac.unread && (ac.unread[ac.members.find(u => u !== me)] || 0) === 0) ? ic.checkCheck : ic.check,
+      tickColor:(ac.unread && (ac.unread[ac.members.find(u => u !== me)] || 0) === 0) ? t.readTick : t.timeColor,
       fileName:m.attachment ? m.attachment.name : '', fileData:m.attachment ? m.attachment.data : '',
       fileSize:m.attachment ? this.formatSize(m.attachment.size||0) : '' })) : [];`
       );
       t = t.replace(
         `<sc-if value="{{ m.ticks }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;display:block;color:{{ t.readTick }}">{{ ic.checkCheck }}</span></sc-if>`,
         `<sc-if value="{{ m.ticks }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;display:block;color:{{ m.tickColor }}">{{ m.tickIcon }}</span></sc-if>`
-      );
-      t = t.replace(
-        `    try {
-      this.fdb.ref('db/users').set(db.users || {});
-      this.fdb.ref('db/requests').set(db.requests || []);
-      this.fdb.ref('db/chats').set(db.chats || []);
-      this.fdb.ref('db/messages').set(db.messages || {});
-      this.fdb.ref('db/notifs').set(db.notifs || {});
-    } catch(e) { console.warn('saveDB', e); }`,
-        `    try {
-      this.fdb.ref('db').update({
-        users:db.users || {}, requests:db.requests || [], chats:db.chats || [],
-        messages:db.messages || {}, notifs:db.notifs || {}
-      });
-    } catch(e) { console.warn('saveDB', e); }`
       );
       t = t.replace(
         `    this._onResize = () => this.setState({ winW: window.innerWidth });
@@ -319,11 +333,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         `  componentDidUpdate(pp, ps) {
     if (this._msg && this.state.activeChat) this._msg.scrollTop = this._msg.scrollHeight;
     if (this.state.activeChat && ps.db !== this.state.db && this.canMarkSeen()) {
-      const messages = this.state.db.messages[this.state.activeChat] || [];
-      const me = this.state.me;
-      if (messages.some(m => !m.system && m.from && m.from !== me && !(m.seenBy || []).includes(me))) {
-        this.markChatSeen(this.state.activeChat);
-      }
+      const chat = this.state.db.chats.find(c => c.id === this.state.activeChat);
+      if (chat && chat.unread && (chat.unread[this.state.me] || 0) > 0) this.markChatSeen(this.state.activeChat);
     }
   }`
       );
@@ -338,20 +349,17 @@ document.addEventListener('DOMContentLoaded', async function() {
   markChatSeen(chatId) {
     if (!this.canMarkSeen()) return;
     const db = JSON.parse(JSON.stringify(this.state.db));
-    const c = db.chats.find(x => x.id === chatId);
+    const chatIndex = db.chats.findIndex(x => x.id === chatId);
+    const c = db.chats[chatIndex];
     const me = this.state.me;
     let changed = false;
     if (c) {
       if (!c.unread) c.unread = {};
       if ((c.unread[me] || 0) !== 0) { c.unread[me] = 0; changed = true; }
-      const messages = db.messages[c.id] || [];
-      messages.forEach(m => {
-        if (!m.system && m.from && m.from !== me && !(m.seenBy || []).includes(me)) {
-          m.seenBy = [...(m.seenBy || []), me];
-          changed = true;
-        }
-      });
-      if (changed) this.saveDB(db);
+      if (changed) {
+        this.setState({ db });
+        if (this.fdb) this.fdb.ref('db/chats/' + chatIndex).set(c).catch(e => console.warn('read receipt', e));
+      }
     }
   }
   openChat(chat) {

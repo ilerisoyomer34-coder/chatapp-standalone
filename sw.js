@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatapp-v9';
+const CACHE_NAME = 'chatapp-v10';
 const APP_ROOT = '/chatapp-standalone/';
 const APP_SHELL = APP_ROOT + 'index.html';
 const ASSETS = [
