@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       );
       t = t.replace(
         `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, ts:Date.now() });`,
-        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, ts:Date.now() });`
+        `    db.messages[cid].push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,5), from:me, text:v, attachment:attachment||null, seenBy:[me], ts:Date.now() });`
       );
       t = t.replace(
         `    this.setState({ draft:'' });`,
@@ -273,8 +273,59 @@ document.addEventListener('DOMContentLoaded', async function() {
       t = t.replace(
         `      time: this.fmtTime(m.ts), ticks: m.from===me })) : [];`,
         `      time: this.fmtTime(m.ts), ticks: m.from===me, hasAttachment:!!m.attachment,
+      tickIcon:(m.seenBy||[]).includes(ac.members.find(u => u !== me)) ? ic.checkCheck : ic.check,
+      tickColor:(m.seenBy||[]).includes(ac.members.find(u => u !== me)) ? t.readTick : t.timeColor,
       fileName:m.attachment ? m.attachment.name : '', fileData:m.attachment ? m.attachment.data : '',
       fileSize:m.attachment ? this.formatSize(m.attachment.size||0) : '' })) : [];`
+      );
+      t = t.replace(
+        `<sc-if value="{{ m.ticks }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;display:block;color:{{ t.readTick }}">{{ ic.checkCheck }}</span></sc-if>`,
+        `<sc-if value="{{ m.ticks }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;display:block;color:{{ m.tickColor }}">{{ m.tickIcon }}</span></sc-if>`
+      );
+      t = t.replace(
+        `  componentDidUpdate(pp, ps) {
+    if (this._msg && this.state.activeChat) this._msg.scrollTop = this._msg.scrollHeight;
+  }`,
+        `  componentDidUpdate(pp, ps) {
+    if (this._msg && this.state.activeChat) this._msg.scrollTop = this._msg.scrollHeight;
+    if (this.state.activeChat && ps.db !== this.state.db) {
+      const messages = this.state.db.messages[this.state.activeChat] || [];
+      const me = this.state.me;
+      if (messages.some(m => !m.system && m.from && m.from !== me && !(m.seenBy || []).includes(me))) {
+        this.markChatSeen(this.state.activeChat);
+      }
+    }
+  }`
+      );
+      t = t.replace(
+        `  openChat(chat) {
+    const db = JSON.parse(JSON.stringify(this.state.db));
+    const c = db.chats.find(x => x.id === chat.id);
+    if (c && c.unread) { c.unread[this.state.me] = 0; this.saveDB(db); }
+    this.setState({ activeChat: chat.id, query:'', draft:'' });
+  }`,
+        `  markChatSeen(chatId) {
+    const db = JSON.parse(JSON.stringify(this.state.db));
+    const c = db.chats.find(x => x.id === chatId);
+    const me = this.state.me;
+    let changed = false;
+    if (c) {
+      if (!c.unread) c.unread = {};
+      if ((c.unread[me] || 0) !== 0) { c.unread[me] = 0; changed = true; }
+      const messages = db.messages[c.id] || [];
+      messages.forEach(m => {
+        if (!m.system && m.from && m.from !== me && !(m.seenBy || []).includes(me)) {
+          m.seenBy = [...(m.seenBy || []), me];
+          changed = true;
+        }
+      });
+      if (changed) this.saveDB(db);
+    }
+  }
+  openChat(chat) {
+    this.markChatSeen(chat.id);
+    this.setState({ activeChat: chat.id, query:'', draft:'' });
+  }`
       );
       t = t.replace(
         `      messages: acMsgs, draft:s.draft, onDraft:e => this.onDraft(e), onMsgKey:e => this.onMsgKey(e), send:() => this.send(),
