@@ -283,12 +283,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         `<sc-if value="{{ m.ticks }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;display:block;color:{{ m.tickColor }}">{{ m.tickIcon }}</span></sc-if>`
       );
       t = t.replace(
+        `    try {
+      this.fdb.ref('db/users').set(db.users || {});
+      this.fdb.ref('db/requests').set(db.requests || []);
+      this.fdb.ref('db/chats').set(db.chats || []);
+      this.fdb.ref('db/messages').set(db.messages || {});
+      this.fdb.ref('db/notifs').set(db.notifs || {});
+    } catch(e) { console.warn('saveDB', e); }`,
+        `    try {
+      this.fdb.ref('db').update({
+        users:db.users || {}, requests:db.requests || [], chats:db.chats || [],
+        messages:db.messages || {}, notifs:db.notifs || {}
+      });
+    } catch(e) { console.warn('saveDB', e); }`
+      );
+      t = t.replace(
+        `    this._onResize = () => this.setState({ winW: window.innerWidth });
+    window.addEventListener('resize', this._onResize);`,
+        `    this._onResize = () => this.setState({ winW: window.innerWidth });
+    this._onAttention = () => { if (this.state.activeChat && this.canMarkSeen()) this.markChatSeen(this.state.activeChat); };
+    window.addEventListener('resize', this._onResize);
+    window.addEventListener('focus', this._onAttention);
+    document.addEventListener('visibilitychange', this._onAttention);`
+      );
+      t = t.replace(
+        `    window.removeEventListener('resize', this._onResize);`,
+        `    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('focus', this._onAttention);
+    document.removeEventListener('visibilitychange', this._onAttention);`
+      );
+      t = t.replace(
         `  componentDidUpdate(pp, ps) {
     if (this._msg && this.state.activeChat) this._msg.scrollTop = this._msg.scrollHeight;
   }`,
         `  componentDidUpdate(pp, ps) {
     if (this._msg && this.state.activeChat) this._msg.scrollTop = this._msg.scrollHeight;
-    if (this.state.activeChat && ps.db !== this.state.db) {
+    if (this.state.activeChat && ps.db !== this.state.db && this.canMarkSeen()) {
       const messages = this.state.db.messages[this.state.activeChat] || [];
       const me = this.state.me;
       if (messages.some(m => !m.system && m.from && m.from !== me && !(m.seenBy || []).includes(me))) {
@@ -304,7 +334,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (c && c.unread) { c.unread[this.state.me] = 0; this.saveDB(db); }
     this.setState({ activeChat: chat.id, query:'', draft:'' });
   }`,
-        `  markChatSeen(chatId) {
+        `  canMarkSeen() { return document.visibilityState === 'visible' && document.hasFocus(); }
+  markChatSeen(chatId) {
+    if (!this.canMarkSeen()) return;
     const db = JSON.parse(JSON.stringify(this.state.db));
     const c = db.chats.find(x => x.id === chatId);
     const me = this.state.me;
