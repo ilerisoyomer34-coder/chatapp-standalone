@@ -142,9 +142,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         "query:'', activeChat:null, draft:'', emojiOpen:false, attachment:null,"
       );
       t = t.replace(
-        `          <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:24px;font-size:12px;color:{{ t.textSecondary }}"><span style="width:14px;height:14px;display:block">{{ ic.shield }}</span>Hesabın bu cihazda güvenle saklanır</div>`,
-        `          <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:24px;font-size:12px;color:{{ t.textSecondary }}"><span style="width:14px;height:14px;display:block">{{ ic.shield }}</span>Hesabın bu cihazda güvenle saklanır</div>
-          <div style="text-align:center;margin-top:10px;font-size:12.5px;font-weight:700;color:{{ t.accent }}">Geliştirici: Ömer Champion</div>`
+        `          <!-- segmented -->
+          <div style="display:flex;gap:4px;background:{{ t.surface }};border-radius:13px;padding:4px;margin-top:26px">`,
+        `          <div style="text-align:center;margin-top:20px;font-size:12.5px;font-weight:700;color:{{ t.accent }}">Geliştiren: Ömer Champion</div>
+
+          <!-- segmented -->
+          <div style="display:flex;gap:4px;background:{{ t.surface }};border-radius:13px;padding:4px;margin-top:10px">`
+      );
+      // Keep account identifiers private everywhere except the signed-in user's header.
+      t = t.replace('placeholder="Kullanıcı adı ara ve istek gönder…"', 'placeholder="Görünen ad ara ve istek gönder…"');
+      t = t.replace(
+        `<div style="font-size:14.5px;font-weight:600;color:{{ t.textPrimary }}">"@{{ query }}" bulunamadı</div>
+                  <div style="font-size:13px;margin-top:6px;line-height:1.5">Bu kullanıcı adıyla kayıtlı kimse yok. Doğru yazdığından emin ol.</div>`,
+        `<div style="font-size:14.5px;font-weight:600;color:{{ t.textPrimary }}">"{{ query }}" bulunamadı</div>
+                  <div style="font-size:13px;margin-top:6px;line-height:1.5">Bu görünen adla kayıtlı kimse yok. Doğru yazdığından emin ol.</div>`
+      );
+      t = t.replace(
+        `<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;color:{{ t.textPrimary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div><div style="font-size:13px;color:{{ t.textSecondary }}">@{{ r.username }}</div></div>`,
+        `<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;color:{{ t.textPrimary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div></div>`
+      );
+      t = t.replace(
+        `<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:{{ t.textPrimary }}">{{ rq.name }}</div><div style="font-size:12.5px;color:{{ t.textSecondary }}">@{{ rq.username }} · sohbet isteği</div></div>`,
+        `<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:{{ t.textPrimary }}">{{ rq.name }}</div><div style="font-size:12.5px;color:{{ t.textSecondary }}">Sohbet isteği</div></div>`
+      );
+      t = t.replace(
+        `Yukarıdan bir <b>kullanıcı adı</b> ara ve sohbet isteği gönder.`,
+        `Yukarıdan bir <b>görünen ad</b> ara ve sohbet isteği gönder.`
+      );
+      t = t.replace(
+        `<span style="width:12px;height:12px;display:block">{{ ic.lock }}</span>@{{ acUsername }} · uçtan uca şifreli`,
+        `<span style="width:12px;height:12px;display:block">{{ ic.lock }}</span>Uçtan uca şifreli`
+      );
+      t = t.replace(
+        "text:`@${meUser.username} (${meUser.name}) isteğini kabul etti — grup kuruldu. Artık güvenle yazışabilirsiniz.`,",
+        "text:`${meUser.name} isteğini kabul etti — grup kuruldu. Artık güvenle yazışabilirsiniz.`,"
+      );
+      t = t.replace(
+        "text:`@${meUser.username} (${meUser.name}) sohbet isteğini reddetti.`,",
+        "text:`${meUser.name} sohbet isteğini reddetti.`,"
+      );
+      t = t.replace(
+        `const myNotifs = (db.notifs[me] || []).map(n => ({ id:n.id, text:n.text,`,
+        `const myNotifs = (db.notifs[me] || []).map(n => ({ id:n.id, text:(n.text||'').replace(/^@[^\\s]+ \\(([^)]+)\\)/, '$1'),`
       );
       t = t.replace(
         `            <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:21px;height:21px;display:block">{{ ic.video }}</span></button>
