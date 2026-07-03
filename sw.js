@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatapp-v11';
+const CACHE_NAME = 'chatapp-v12';
 const APP_ROOT = '/chatapp-standalone/';
 const APP_SHELL = APP_ROOT + 'index.html';
 const ASSETS = [
@@ -39,5 +39,37 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch (e) { payload = {}; }
+  const notif = payload.notification || {};
+  const data = payload.data || {};
+  const title = notif.title || 'ChatApp';
+  const body = notif.body || 'Yeni mesaj';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: APP_ROOT + 'icons/icon-v5-192.png',
+      badge: APP_ROOT + 'icons/icon-v5-192.png',
+      tag: data.chatId ? 'chat-' + data.chatId : undefined,
+      renotify: !!data.chatId,
+      data,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(APP_ROOT) && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(APP_ROOT);
+    })
   );
 });
