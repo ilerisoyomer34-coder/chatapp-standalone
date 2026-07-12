@@ -218,10 +218,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     const db = JSON.parse(JSON.stringify(this.state.db));
     const user = db.users[username];
     if (!user) return this.toast('Kullanıcı bulunamadı.', 'no');
-    const ok = window.confirm((user.name || username) + ' hesabı ve tüm sohbetleri silinsin mi?');
+    const ok = window.confirm((user.name || username) + ' uygulamadan çıkarılsın mı?');
     if (!ok) return;
     const removedChats = db.chats.filter(c => c.members && c.members.includes(username)).map(c => c.id);
-    delete db.users[username];
+    db.users[username] = Object.assign({}, user, { removed:true, removedAt:Date.now(), removedBy:this.state.me });
     db.requests = db.requests.filter(r => r.from !== username && r.to !== username);
     db.chats = db.chats.filter(c => !(c.members && c.members.includes(username)));
     removedChats.forEach(cid => { delete db.messages[cid]; });
@@ -240,6 +240,18 @@ document.addEventListener('DOMContentLoaded', async function() {
       removedChats.forEach(cid => this.fdb.ref('db/typing/' + cid).remove().catch(e => console.warn('remove typing', e)));
     }
     this.toast((user.name || username) + ' çıkarıldı.');
+  }
+  restoreUser(username) {
+    if (!this.isOwner()) return this.toast('Bu işlem için yönetici hesabı gerekli.', 'no');
+    const db = JSON.parse(JSON.stringify(this.state.db));
+    const user = db.users[username];
+    if (!user) return this.toast('Kullanıcı bulunamadı.', 'no');
+    db.users[username] = Object.assign({}, user, { removed:false });
+    delete db.users[username].removedAt;
+    delete db.users[username].removedBy;
+    this.setState({ db });
+    this.saveDB(db);
+    this.toast((user.name || username) + ' tekrar içeri alındı.');
   }`
       );
       t = t.replace(
@@ -250,15 +262,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         const name = s.fName.trim();`
       );
       t = t.replace(
+        `        if (existing) { this._authBusy=false; return this.setState({ authErr:'Bu kullanıcı adı zaten alınmış. Senin hesabınsa yukarıdan “Giriş Yap”ı kullan.', authBusy:false }); }`,
+        `        if (existing && existing.removed) { this._authBusy=false; return this.setState({ authErr:'Bu hesap çıkarıldı. Yönetici tekrar içeri alabilir.', authBusy:false }); }
+        if (existing) { this._authBusy=false; return this.setState({ authErr:'Bu kullanıcı adı zaten alınmış. Senin hesabınsa yukarıdan “Giriş Yap”ı kullan.', authBusy:false }); }`
+      );
+      t = t.replace(
+        `        if (!acc) { this._authBusy=false; return this.setState({ authErr:'Böyle bir kullanıcı yok. Önce üye ol.', authBusy:false }); }
+        if (acc.pass !== p) { this._authBusy=false; return this.setState({ authErr:'Şifre hatalı.', authBusy:false }); }`,
+        `        if (!acc) { this._authBusy=false; return this.setState({ authErr:'Böyle bir kullanıcı yok. Önce üye ol.', authBusy:false }); }
+        if (acc.removed) { this._authBusy=false; return this.setState({ authErr:'Bu hesap çıkarıldı. Yönetici tekrar içeri alabilir.', authBusy:false }); }
+        if (acc.pass !== p) { this._authBusy=false; return this.setState({ authErr:'Şifre hatalı.', authBusy:false }); }`
+      );
+      t = t.replace(
         `    // ── search ──`,
         `    // ── admin ──
     const isAdmin = this.isOwner();
-    const adminUsers = isAdmin ? Object.values(db.users).filter(u => !this.isOwnerUser(u)).sort((a,b) => (a.name||a.username||'').localeCompare(b.name||b.username||'', 'tr')).map(u => ({
+    const adminUsers = isAdmin ? Object.values(db.users).filter(u => !u.removed && !this.isOwnerUser(u)).sort((a,b) => (a.name||a.username||'').localeCompare(b.name||b.username||'', 'tr')).map(u => ({
       username:u.username, name:u.name || u.username, color:u.color || this.colorFor(u.username||'x'), init:this.initials(u.name || u.username),
       onRemove:() => this.removeUser(u.username)
     })) : [];
+    const removedUsers = isAdmin ? Object.values(db.users).filter(u => u.removed && !this.isOwnerUser(u)).sort((a,b) => (a.name||a.username||'').localeCompare(b.name||b.username||'', 'tr')).map(u => ({
+      username:u.username, name:u.name || u.username, color:u.color || this.colorFor(u.username||'x'), init:this.initials(u.name || u.username),
+      onRestore:() => this.restoreUser(u.username)
+    })) : [];
 
     // ── search ──`
+      );
+      t = t.replace(
+        `      results = Object.values(db.users).filter(u => u.username !== me &&
+        (u.username.includes(q) || (u.name||'').toLowerCase().includes(q))).map(u => {`,
+        `      results = Object.values(db.users).filter(u => !u.removed && u.username !== me &&
+        (u.username.includes(q) || (u.name||'').toLowerCase().includes(q))).map(u => {`
       );
       t = t.replace(
         `              <!-- chats -->
@@ -278,6 +312,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                   </sc-for>
                 </div>
+                <sc-if value="{{ hasRemovedUsers }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:8px 18px 4px;font-size:12px;font-weight:700;color:{{ t.error }};letter-spacing:.5px">ÇIKARILANLAR ({{ removedUserCount }})</div>
+                  <div style="margin:8px 12px 12px;background:{{ t.bg }};border:1px solid {{ t.divider }};border-radius:15px;overflow:hidden">
+                    <sc-for list="{{ removedUsers }}" as="ru" hint-placeholder-count="0">
+                      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid {{ t.divider }}">
+                        <div style="width:36px;height:36px;border-radius:50%;background:{{ ru.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;opacity:.62">{{ ru.init }}</div>
+                        <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:{{ t.textPrimary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ru.name }}</div><div style="font-size:12px;color:{{ t.textSecondary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ru.username }}</div></div>
+                        <button onclick="{{ ru.onRestore }}" class="cx-tap" style="height:32px;padding:0 12px;border:none;border-radius:9px;background:{{ t.accent }};color:#fff;font-size:12px;font-weight:800;font-family:inherit;white-space:nowrap">Geri Al</button>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
               </sc-if>
 
               <!-- chats -->
@@ -289,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         `      hasNotifs: myNotifs.length>0, notifs: myNotifs,
       // admin
       isAdmin, adminUsers, adminUserCount:adminUsers.length, noAdminUsers:adminUsers.length===0,
+      removedUsers, removedUserCount:removedUsers.length, hasRemovedUsers:removedUsers.length>0,
       // chats`
       );
       t = t.replace(
@@ -767,7 +814,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       );
       t = t.replace(
         `      if (me && db.users[me]) { upd.me = me; upd.view = 'app'; setTimeout(() => this.markOnline(me), 0); }`,
-        `      if (me && db.users[me]) { upd.me = me; upd.view = 'app'; setTimeout(() => { this.markOnline(me); this.setupPush(); }, 0); }`
+        `      if (me && db.users[me] && !db.users[me].removed) { upd.me = me; upd.view = 'app'; setTimeout(() => { this.markOnline(me); this.setupPush(); }, 0); }`
       );
       t = t.replace(
         `  enter(u) {
