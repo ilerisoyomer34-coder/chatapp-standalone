@@ -203,11 +203,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         `  meUser() { const db=this.state.db, m=this.state.me; return m && db.users[m] ? db.users[m] : null; }`,
         `  meUser() { const db=this.state.db, m=this.state.me; return m && db.users[m] ? db.users[m] : null; }
   ownerKey(v) { return String(v||'').toLowerCase().replace(/\\s+/g,'').replace(/[^a-z0-9çğıöşü_.]/g,''); }
+  isReservedOwnerUsername(v) {
+    const key = this.ownerKey(v);
+    return key === 'ömerilerisoy' || key === 'omerilerisoy' || key === 'ömer_ilerisoy' || key === 'omer_ilerisoy';
+  }
   isOwnerUser(u) {
-    const user = typeof u === 'string' ? { username:u, name:u } : (u || {});
-    const username = this.ownerKey(user.username);
-    const name = this.ownerKey(user.name);
-    return username === 'ömerilerisoy' || username === 'omerilerisoy' || username === 'ömer_ilerisoy' || username === 'omer_ilerisoy' || name === 'ömerilerisoy' || name === 'omerilerisoy';
+    const user = typeof u === 'string' ? { username:u } : (u || {});
+    return this.isReservedOwnerUsername(user.username);
   }
   isOwner() { return this.isOwnerUser(this.meUser() || this.state.me); }
   removeUser(username) {
@@ -239,6 +241,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     this.toast((user.name || username) + ' çıkarıldı.');
   }`
+      );
+      t = t.replace(
+        `      if (s.authMode === 'register') {
+        const name = s.fName.trim();`,
+        `      if (s.authMode === 'register') {
+        if (this.isReservedOwnerUsername(u)) { this._authBusy=false; return this.setState({ authErr:'buna yetkiniz yok', authBusy:false }); }
+        const name = s.fName.trim();`
       );
       t = t.replace(
         `    // ── search ──`,
