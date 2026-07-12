@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       t = t.replace(
         `          <!-- segmented -->
           <div style="display:flex;gap:4px;background:{{ t.surface }};border-radius:13px;padding:4px;margin-top:26px">`,
-        `          <div style="text-align:center;margin-top:20px;font-size:12.5px;font-weight:700;color:{{ t.accent }}">Geliştiren: Ömer Champion</div>
+        `          <div style="text-align:center;margin-top:20px;font-size:12.5px;font-weight:700;color:{{ t.accent }}">Geliştiren: Ömer İlerisoy</div>
 
           <!-- segmented -->
           <div style="display:flex;gap:4px;background:{{ t.surface }};border-radius:13px;padding:4px;margin-top:10px">`
@@ -198,6 +198,89 @@ document.addEventListener('DOMContentLoaded', async function() {
       t = t.replace(
         `const myNotifs = (db.notifs[me] || []).map(n => ({ id:n.id, text:n.text,`,
         `const myNotifs = (db.notifs[me] || []).map(n => ({ id:n.id, text:(n.text||'').replace(/^@[^\\s]+ \\(([^)]+)\\)/, '$1'),`
+      );
+      t = t.replace(
+        `  meUser() { const db=this.state.db, m=this.state.me; return m && db.users[m] ? db.users[m] : null; }`,
+        `  meUser() { const db=this.state.db, m=this.state.me; return m && db.users[m] ? db.users[m] : null; }
+  ownerKey(v) { return String(v||'').toLowerCase().replace(/\\s+/g,'').replace(/[^a-z0-9çğıöşü_.]/g,''); }
+  isOwnerUser(u) {
+    const user = typeof u === 'string' ? { username:u, name:u } : (u || {});
+    const username = this.ownerKey(user.username);
+    const name = this.ownerKey(user.name);
+    return username === 'ömerilerisoy' || username === 'omerilerisoy' || username === 'ömer_ilerisoy' || username === 'omer_ilerisoy' || name === 'ömerilerisoy' || name === 'omerilerisoy';
+  }
+  isOwner() { return this.isOwnerUser(this.meUser() || this.state.me); }
+  removeUser(username) {
+    if (!this.isOwner()) return this.toast('Bu işlem için yönetici hesabı gerekli.', 'no');
+    if (this.isOwnerUser(username)) return this.toast('Yönetici hesabı çıkarılamaz.', 'no');
+    const db = JSON.parse(JSON.stringify(this.state.db));
+    const user = db.users[username];
+    if (!user) return this.toast('Kullanıcı bulunamadı.', 'no');
+    const ok = window.confirm((user.name || username) + ' hesabı ve tüm sohbetleri silinsin mi?');
+    if (!ok) return;
+    const removedChats = db.chats.filter(c => c.members && c.members.includes(username)).map(c => c.id);
+    delete db.users[username];
+    db.requests = db.requests.filter(r => r.from !== username && r.to !== username);
+    db.chats = db.chats.filter(c => !(c.members && c.members.includes(username)));
+    removedChats.forEach(cid => { delete db.messages[cid]; });
+    delete db.notifs[username];
+    if (db.online) delete db.online[username];
+    if (db.typing) {
+      Object.keys(db.typing).forEach(cid => {
+        if (db.typing[cid]) delete db.typing[cid][username];
+      });
+    }
+    const activeChat = removedChats.includes(this.state.activeChat) ? null : this.state.activeChat;
+    this.setState({ db, activeChat });
+    this.saveDB(db);
+    if (this.fdb) {
+      this.fdb.ref('db/online/' + username).remove().catch(e => console.warn('remove online', e));
+      removedChats.forEach(cid => this.fdb.ref('db/typing/' + cid).remove().catch(e => console.warn('remove typing', e)));
+    }
+    this.toast((user.name || username) + ' çıkarıldı.');
+  }`
+      );
+      t = t.replace(
+        `    // ── search ──`,
+        `    // ── admin ──
+    const isAdmin = this.isOwner();
+    const adminUsers = isAdmin ? Object.values(db.users).filter(u => !this.isOwnerUser(u)).sort((a,b) => (a.name||a.username||'').localeCompare(b.name||b.username||'', 'tr')).map(u => ({
+      username:u.username, name:u.name || u.username, color:u.color || this.colorFor(u.username||'x'), init:this.initials(u.name || u.username),
+      onRemove:() => this.removeUser(u.username)
+    })) : [];
+
+    // ── search ──`
+      );
+      t = t.replace(
+        `              <!-- chats -->
+              <div style="padding:14px 18px 4px;font-size:12px;font-weight:700;color:{{ t.textSecondary }};letter-spacing:.5px">SOHBETLER</div>`,
+        `              <!-- admin -->
+              <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:14px 18px 4px;font-size:12px;font-weight:700;color:{{ t.accent }};letter-spacing:.5px;display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;display:block">{{ ic.shield }}</span>YÖNETİCİ PANELİ ({{ adminUserCount }})</div>
+                <div style="margin:8px 12px 12px;background:{{ t.bg }};border:1px solid {{ t.divider }};border-radius:15px;overflow:hidden">
+                  <sc-if value="{{ noAdminUsers }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:14px;color:{{ t.textSecondary }};font-size:13px;text-align:center">Çıkarılacak kullanıcı yok.</div>
+                  </sc-if>
+                  <sc-for list="{{ adminUsers }}" as="au" hint-placeholder-count="0">
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid {{ t.divider }}">
+                      <div style="width:36px;height:36px;border-radius:50%;background:{{ au.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0">{{ au.init }}</div>
+                      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:{{ t.textPrimary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ au.name }}</div><div style="font-size:12px;color:{{ t.textSecondary }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ au.username }}</div></div>
+                      <button onclick="{{ au.onRemove }}" class="cx-tap" style="height:32px;padding:0 12px;border:none;border-radius:9px;background:{{ t.error }};color:#fff;font-size:12px;font-weight:800;font-family:inherit;white-space:nowrap">Çıkar</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- chats -->
+              <div style="padding:14px 18px 4px;font-size:12px;font-weight:700;color:{{ t.textSecondary }};letter-spacing:.5px">SOHBETLER</div>`
+      );
+      t = t.replace(
+        `      hasNotifs: myNotifs.length>0, notifs: myNotifs,
+      // chats`,
+        `      hasNotifs: myNotifs.length>0, notifs: myNotifs,
+      // admin
+      isAdmin, adminUsers, adminUserCount:adminUsers.length, noAdminUsers:adminUsers.length===0,
+      // chats`
       );
       t = t.replace(
         `            <button class="cx-tap" style="width:42px;height:42px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;color:inherit"><span style="width:21px;height:21px;display:block">{{ ic.video }}</span></button>
