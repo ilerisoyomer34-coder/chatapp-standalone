@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatapp-v12';
+const CACHE_NAME = 'chatapp-v13';
 const APP_ROOT = '/chatapp-standalone/';
 const APP_SHELL = APP_ROOT + 'index.html';
 const ASSETS = [
@@ -30,9 +30,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => response.ok ? response : caches.match(APP_SHELL))
-        .catch(() => caches.match(APP_SHELL))
+      caches.match(APP_SHELL).then((cached) => {
+        const fresh = fetch(event.request).then((response) => {
+          if (response && response.ok) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(APP_SHELL, response.clone()));
+          }
+          return response;
+        }).catch(() => cached);
+        if (cached) event.waitUntil(fresh);
+        return cached || fresh;
+      })
     );
     return;
   }
