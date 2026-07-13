@@ -211,6 +211,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     const user = typeof u === 'string' ? { username:u } : (u || {});
     return this.isReservedOwnerUsername(user.username);
   }
+  authAttemptKey(u) { return 'chatapp_badpass_' + this.ownerKey(u); }
+  lockKey() { return 'chatapp_login_locked'; }
+  isLoginLocked() { try { return localStorage.getItem(this.lockKey()) === '1'; } catch(e) { return false; } }
+  failedLoginCount(u) { try { return parseInt(localStorage.getItem(this.authAttemptKey(u)) || '0', 10) || 0; } catch(e) { return 0; } }
+  noteFailedLogin(u) {
+    const count = this.failedLoginCount(u) + 1;
+    try { localStorage.setItem(this.authAttemptKey(u), String(count)); } catch(e) {}
+    return count;
+  }
+  clearFailedLogin(u) { try { localStorage.removeItem(this.authAttemptKey(u)); } catch(e) {} }
+  lockLogin() { try { localStorage.setItem(this.lockKey(), '1'); sessionStorage.removeItem(this.SES_KEY); } catch(e) {} }
   isOwner() { return this.isOwnerUser(this.meUser() || this.state.me); }
   removeUser(username) {
     if (!this.isOwner()) return this.toast('Bu işlem için yönetici hesabı gerekli.', 'no');
@@ -255,6 +266,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   }`
       );
       t = t.replace(
+        `  async submitAuth() {
+    if (this._authBusy) return;
+    const s = this.state;`,
+        `  async submitAuth() {
+    if (this._authBusy) return;
+    if (this.isLoginLocked()) return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Uygulamadan çıkarıldınız.' });
+    const s = this.state;`
+      );
+      t = t.replace(
         `      if (s.authMode === 'register') {
         const name = s.fName.trim();`,
         `      if (s.authMode === 'register') {
@@ -271,7 +291,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (acc.pass !== p) { this._authBusy=false; return this.setState({ authErr:'Şifre hatalı.', authBusy:false }); }`,
         `        if (!acc) { this._authBusy=false; return this.setState({ authErr:'Böyle bir kullanıcı yok. Önce üye ol.', authBusy:false }); }
         if (acc.removed) { this._authBusy=false; return this.setState({ authErr:'Bu hesap çıkarıldı. Yönetici tekrar içeri alabilir.', authBusy:false }); }
-        if (acc.pass !== p) { this._authBusy=false; return this.setState({ authErr:'Şifre hatalı.', authBusy:false }); }`
+        if (acc.pass !== p) {
+          const fails = this.noteFailedLogin(u);
+          this._authBusy=false;
+          if (fails > 5) {
+            this.lockLogin();
+            return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Uygulamadan çıkarıldınız.', authBusy:false, fPass:'' });
+          }
+          return this.setState({ authErr:'Şifre hatalı.', authBusy:false });
+        }`
+      );
+      t = t.replace(
+        `        this._authBusy=false; this.setState({ authBusy:false });
+        this.enter(u);`,
+        `        this.clearFailedLogin(u);
+        this._authBusy=false; this.setState({ authBusy:false });
+        this.enter(u);`
+      );
+      t = t.replace(
+        `        this._authBusy=false; this.setState({ authBusy:false });
+        this.enter(u);`,
+        `        this.clearFailedLogin(u);
+        this._authBusy=false; this.setState({ authBusy:false });
+        this.enter(u);`
       );
       t = t.replace(
         `    // ── search ──`,
