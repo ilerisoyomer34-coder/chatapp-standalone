@@ -212,8 +212,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     return this.isReservedOwnerUsername(user.username);
   }
   authAttemptKey(u) { return 'chatapp_badpass_' + this.ownerKey(u); }
-  lockKey() { return 'chatapp_login_locked'; }
-  isLoginLocked() { try { return localStorage.getItem(this.lockKey()) === '1'; } catch(e) { return false; } }
+  lockKey() { return 'chatapp_login_locked_until'; }
+  isLoginLocked() {
+    try {
+      const until = parseInt(localStorage.getItem(this.lockKey()) || '0', 10) || 0;
+      if (until > Date.now()) return true;
+      if (until) localStorage.removeItem(this.lockKey());
+      return false;
+    } catch(e) { return false; }
+  }
   failedLoginCount(u) { try { return parseInt(localStorage.getItem(this.authAttemptKey(u)) || '0', 10) || 0; } catch(e) { return 0; } }
   noteFailedLogin(u) {
     const count = this.failedLoginCount(u) + 1;
@@ -221,7 +228,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     return count;
   }
   clearFailedLogin(u) { try { localStorage.removeItem(this.authAttemptKey(u)); } catch(e) {} }
-  lockLogin() { try { localStorage.setItem(this.lockKey(), '1'); sessionStorage.removeItem(this.SES_KEY); } catch(e) {} }
+  lockLogin(u) {
+    try {
+      localStorage.setItem(this.lockKey(), String(Date.now() + 5 * 60 * 1000));
+      if (u) localStorage.removeItem(this.authAttemptKey(u));
+      sessionStorage.removeItem(this.SES_KEY);
+    } catch(e) {}
+  }
   isOwner() { return this.isOwnerUser(this.meUser() || this.state.me); }
   removeUser(username) {
     if (!this.isOwner()) return this.toast('Bu işlem için yönetici hesabı gerekli.', 'no');
@@ -271,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const s = this.state;`,
         `  async submitAuth() {
     if (this._authBusy) return;
-    if (this.isLoginLocked()) return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Uygulamadan çıkarıldınız.' });
+    if (this.isLoginLocked()) return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Aynı cihazdan 5 dakika boyunca giriş yapılamaz.' });
     const s = this.state;`
       );
       t = t.replace(
@@ -295,8 +308,8 @@ document.addEventListener('DOMContentLoaded', async function() {
           const fails = this.noteFailedLogin(u);
           this._authBusy=false;
           if (fails > 5) {
-            this.lockLogin();
-            return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Uygulamadan çıkarıldınız.', authBusy:false, fPass:'' });
+            this.lockLogin(u);
+            return this.setState({ authErr:'Çok fazla yanlış şifre girdiniz. Aynı cihazdan 5 dakika boyunca giriş yapılamaz.', authBusy:false, fPass:'' });
           }
           return this.setState({ authErr:'Şifre hatalı.', authBusy:false });
         }`
