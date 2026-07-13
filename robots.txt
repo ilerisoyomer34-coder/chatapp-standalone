@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ilerisoyomer34-coder.github.io/chatapp-standalone/sitemap.xml

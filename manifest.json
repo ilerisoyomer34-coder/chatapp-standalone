@@ -1,7 +1,7 @@
 {
   "name": "ChatApp",
   "short_name": "ChatApp",
-  "description": "Standalone Chat Application",
+  "description": "Omer Ilerisoy tarafindan gelistirilen hizli ve sade chat app.",
   "id": "/chatapp-standalone/",
   "start_url": "/chatapp-standalone/",
   "scope": "/chatapp-standalone/",
