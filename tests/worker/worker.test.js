@@ -2,7 +2,7 @@
 // bildirim mantığı (Realtime Database emülatörünün REST API'sine karşı).
 // Çalıştırma: npm run test:emulator
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { notifyMessage, notifyRequest, restDb, serviceAccessToken, verifyIdToken } from '../../worker/src/index.js';
+import { notifyMessage, notifyRequest, restDb, sendTestPush, serviceAccessToken, verifyIdToken } from '../../worker/src/index.js';
 
 const enc = new TextEncoder();
 const b64url = (bytes) => Buffer.from(bytes).toString('base64url');
@@ -126,5 +126,14 @@ describe('notifyMessage / notifyRequest (emülatör)', () => {
     await db.patch(`requests/${A}_${B}`, { status: 'accepted', respondedAt: 9 });
     await notifyRequest({ db, push, uid: B, requestId: `${A}_${B}`, appPath: '/' });
     expect(await db.get(`userChats/${A}/${AB}`)).toEqual({ unread: 0, updatedAt: 9 });
+  });
+  it('test bildirimi yalnızca çağıranın kendi cihazlarına gider', async () => {
+    const push = fakePush();
+    const tok = 'tok' + 'x'.repeat(40);
+    await expect(sendTestPush({ db, push, uid: B })).resolves.toEqual({ tokens: 1, sent: 1 });
+    expect(push.calls[0]).toMatchObject({ uid: B, tokens: [tok], data: { type: 'test', tag: 'chatapp-test' } });
+    // Başkasının token'ı verilse bile yalnızca kendi kayıtlı cihazlarına gider.
+    await expect(sendTestPush({ db, push, uid: A, token: tok })).resolves.toEqual({ tokens: 0, sent: 0 });
+    expect(push.calls).toHaveLength(1);
   });
 });

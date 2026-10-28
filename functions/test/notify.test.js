@@ -3,7 +3,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
-import { handleMessageCreated, handleRequestChange } from '../lib/notify.js';
+import { handleMessageCreated, handleRequestChange, sendTestPush } from '../lib/notify.js';
 import { messagePreview, notificationBody } from '../lib/text.js';
 
 const uid = (name) => (name + '0'.repeat(28)).slice(0, 28);
@@ -143,5 +143,22 @@ describe('metinler', () => {
     expect(notificationBody({ attachment: { type: 'audio/webm', name: 'ses.webm' } })).toBe('Sesli mesaj');
     expect(notificationBody({ attachment: { type: 'application/pdf', name: 'rapor.pdf' } })).toBe('Dosya: rapor.pdf');
     expect(messagePreview({ attachment: { type: 'application/pdf', name: 'rapor.pdf' } })).toBe('📎 rapor.pdf');
+  });
+});
+
+describe('test bildirimi', () => {
+  it('kendi cihazlarına gönderir; verilen token kayıtlıysa yalnızca ona', async () => {
+    const other = 'tokenB2_' + 'y'.repeat(140);
+    await db.ref(`pushTokens/${B}/${other}`).set({ platform: 'ios', updatedAt: 2 });
+    const push = fakeSender();
+    await expect(sendTestPush(db, push, B)).resolves.toEqual({ tokens: 2, sent: 2 });
+    await expect(sendTestPush(db, push, B, other)).resolves.toEqual({ tokens: 1, sent: 1 });
+    expect(push.calls[1]).toMatchObject({ to: B, tokens: [other], data: { type: 'test', tag: 'chatapp-test' } });
+  });
+
+  it('başkasının token\'ıyla başkasına gönderilemez; cihazı yoksa hiçbir şey gönderilmez', async () => {
+    const push = fakeSender();
+    await expect(sendTestPush(db, push, A, TOKEN_B)).resolves.toEqual({ tokens: 0, sent: 0 });
+    expect(push.calls).toHaveLength(0);
   });
 });

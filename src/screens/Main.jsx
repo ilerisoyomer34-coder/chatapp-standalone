@@ -45,17 +45,21 @@ const chatUrl = (chatId) => {
 const looksDirect = (chatId) => /^[A-Za-z0-9]{20,128}_[A-Za-z0-9]{20,128}$/.test(chatId);
 
 function useConnected() {
-  const [connected, setConnected] = useState(true);
+  const [connected, setConnected] = useState(() => navigator.onLine !== false);
   useEffect(() => {
     let timer = null;
     const unsub = onValue(ref(db, '.info/connected'), (snap) => {
       clearTimeout(timer);
       if (snap.val() === true) setConnected(true);
-      // Açılıştaki kısa bağlantı süresinde bant yanıp sönmesin.
+      // Açılıştaki kısa bağlantı süresinde bant yanıp sönmesin (cihaz çevrimdışıysa hemen göster).
+      else if (navigator.onLine === false) setConnected(false);
       else timer = setTimeout(() => setConnected(false), 2500);
     });
+    const onOffline = () => setConnected(false);
+    window.addEventListener('offline', onOffline);
     return () => {
       clearTimeout(timer);
+      window.removeEventListener('offline', onOffline);
       unsub();
     };
   }, []);

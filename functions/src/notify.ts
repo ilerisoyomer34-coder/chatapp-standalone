@@ -213,3 +213,25 @@ export async function handleRequestChange(
   }
   return null;
 }
+
+export interface TestPushResult {
+  tokens: number;
+  sent: number;
+}
+
+// "Test bildirimi gönder": yalnızca çağıranın kendi cihazlarına. Bir token verilirse ve bu
+// kullanıcıya kayıtlıysa yalnızca o cihaza gider (ör. "bu telefonda çalışıyor mu?").
+export async function sendTestPush(db: Database, push: PushSender, uid: string, token?: unknown): Promise<TestPushResult> {
+  const all = await tokensOf(db, uid);
+  const tokens = typeof token === 'string' && all.includes(token) ? [token] : all;
+  if (!tokens.length) return { tokens: 0, sent: 0 };
+  const sent = await push.send(uid, tokens, {
+    type: 'test',
+    title: 'ChatApp',
+    body: 'Test bildirimi: bildirimler bu cihazda çalışıyor.',
+    url: APP_PATH,
+    tag: 'chatapp-test',
+    ts: String(Date.now()),
+  });
+  return { tokens: tokens.length, sent };
+}

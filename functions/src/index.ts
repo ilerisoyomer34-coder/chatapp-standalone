@@ -14,7 +14,7 @@ import { syncChatAccess } from './access.js';
 import { deleteAccount as deleteAccountImpl } from './account.js';
 import { manageGroup as manageGroupImpl } from './groups.js';
 import { handleMessageUpdated, type PrefixDeleter } from './messages.js';
-import { fcmSender, handleMessageCreated, handleRequestChange, type ChatRequest } from './notify.js';
+import { fcmSender, handleMessageCreated, handleRequestChange, sendTestPush as sendTestPushImpl, type ChatRequest } from './notify.js';
 import type { ChatMessage } from './text.js';
 
 initializeApp();
@@ -117,6 +117,19 @@ export const manageGroup = onCall({ region: REGION, enforceAppCheck: ENFORCE_APP
     await deletePrefix(`groups/${result.chatId}/`);
   }
   logger.info('grup işlemi', { uid, action: (request.data || {}).action, chatId: result.chatId });
+  return result;
+});
+
+// Test bildirimi: kullanıcının kendi cihazına. İstenirse birkaç saniye beklenir ki kullanıcı
+// uygulamayı arka plana alıp kilit ekranında görebilsin.
+export const sendTestPush = onCall({ region: REGION, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+  const uid = requireAuth(request);
+  await requireActive(uid);
+  const { token, delaySeconds } = (request.data || {}) as { token?: unknown; delaySeconds?: unknown };
+  const delay = Math.min(Math.max(Number(delaySeconds) || 0, 0), 10);
+  if (delay) await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+  const result = await sendTestPushImpl(getDatabase(), sender(), uid, token);
+  logger.info('test bildirimi', { uid, result });
   return result;
 });
 

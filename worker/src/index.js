@@ -326,6 +326,22 @@ export async function notifyRequest({ db, push, uid, requestId, appPath, now = D
   throw new HttpError(403, 'not-allowed');
 }
 
+// Test bildirimi: yalnızca çağıranın kendi cihazlarına (Cloud Functions'taki sendTestPush ile aynı).
+export async function sendTestPush({ db, push, uid, token, now = Date.now() }) {
+  const all = Object.keys((await db.get(`pushTokens/${uid}`)) || {});
+  const tokens = typeof token === 'string' && all.includes(token) ? [token] : all;
+  if (!tokens.length) return { tokens: 0, sent: 0 };
+  const sent = await push.send(uid, tokens, {
+    type: 'test',
+    title: 'ChatApp',
+    body: 'Test bildirimi: bildirimler bu cihazda çalışıyor.',
+    url: '/chatapp-standalone/',
+    tag: 'chatapp-test',
+    ts: String(now),
+  });
+  return { tokens: tokens.length, sent };
+}
+
 // ── HTTP giriş noktası ──────────────────────────────────────────────────
 function corsHeaders(env, origin) {
   const allowed = (env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim());
@@ -356,6 +372,11 @@ export default {
       let result;
       if (path === '/notify/message') result = await notifyMessage({ db, push, uid, chatId: body.chatId, messageId: body.messageId, appPath });
       else if (path === '/notify/request') result = await notifyRequest({ db, push, uid, requestId: body.requestId, appPath });
+      else if (path === '/test') {
+        const delay = Math.min(Math.max(Number(body.delaySeconds) || 0, 0), 10);
+        if (delay) await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+        result = await sendTestPush({ db, push, uid, token: body.token });
+      }
       else throw new HttpError(404, 'not-found');
       return json({ ok: true, ...result }, 200, cors);
     } catch (err) {

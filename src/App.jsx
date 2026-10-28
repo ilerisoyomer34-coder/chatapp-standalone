@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { DialogHost } from './components/dialogs.jsx';
+import UpdateBanner from './components/UpdateBanner.jsx';
 import { useDbValue } from './hooks/data.js';
 import { claimUsernameAndCreateProfile, logout } from './lib/api.js';
 import { cacheClear } from './lib/cache.js';
@@ -51,8 +52,9 @@ export default function App() {
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u || null)), []);
 
   const uid = user ? user.uid : null;
-  const profile = useDbValue(uid ? `users/${uid}` : null);
-  const admin = useDbValue(uid ? `admins/${uid}` : null);
+  // Önbellekli: uygulama internetsiz açıldığında da son profil ile sohbet listesi görünür.
+  const profile = useDbValue(uid ? `users/${uid}` : null, { cache: true });
+  const admin = useDbValue(uid ? `admins/${uid}` : null, { cache: true });
 
   const signOutEverywhere = useCallback(
     async (message) => {
@@ -139,6 +141,7 @@ export default function App() {
   return (
     <div className="app-root" style={{ background: t.canvas, color: t.textPrimary }}>
       {body}
+      <UpdateBanner t={t} />
       <DialogHost t={t} />
     </div>
   );

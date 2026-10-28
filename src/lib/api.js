@@ -310,6 +310,29 @@ export const groupAction = (data) => callable('manageGroup', data);
 // ── Yönetici ────────────────────────────────────────────────────────────
 export const adminSetUserDisabled = (uid, disabled) => callable('adminSetUserDisabled', { uid, disabled });
 
+// ── Test bildirimi ──────────────────────────────────────────────────────
+// Sunucu bildirimi birkaç saniye bekleyip gönderir; kullanıcı bu arada uygulamayı
+// arka plana alıp kilit ekranında görebilir. Yalnızca kendi cihazlarına gider.
+export const TEST_PUSH_DELAY_SECONDS = 5;
+
+export async function sendTestPush(token) {
+  const payload = { token: token || null, delaySeconds: TEST_PUSH_DELAY_SECONDS };
+  if (!PUSH_WORKER_URL) return callable('sendTestPush', payload);
+  const idToken = await auth.currentUser.getIdToken();
+  const res = await fetch(`${PUSH_WORKER_URL}/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify(payload),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(body.error || `worker-${res.status}`);
+    err.code = 'functions/unavailable';
+    throw err;
+  }
+  return body;
+}
+
 // ── B planı: Cloudflare Worker bildirim uç noktası ──────────────────────
 // A planında (Cloud Functions) PUSH_WORKER_URL boştur ve bu çağrı yapılmaz.
 export function notifyWorker(kind, payload) {

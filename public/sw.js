@@ -1,33 +1,59 @@
 /* ChatApp servis çalışanı — kapsam: /chatapp-standalone/
+ * - Önbellek: derleme çıktısı (uygulama kabuğu, JS/CSS, yazı tipleri, ikonlar) kurulumda önbelleğe alınır;
+ *   uygulama internetsiz açılır. Yeni sürüm hazır olunca sayfa "Yeni sürüm hazır — Yenile" bandı gösterir.
  * - push: yalnızca "data" yükü gelir; bildirimi her zaman bu dosya gösterir
  *   (iOS'ta bildirim göstermeden geçilen push aboneliğin iptaline yol açabilir).
  * - notificationclick: açık pencere varsa odaklanır ve sohbeti açtırır, yoksa yeni pencere açar.
- * - fetch: basit önbellek (uygulama kabuğu ağ öncelikli, statik dosyalar önbellekten).
  */
 const APP_ROOT = '/chatapp-standalone/';
-const CACHE_NAME = 'chatapp-v2-1';
-const ICON = APP_ROOT + 'icons/icon-v5-192.png';
+// Derleme sırasında vite.config.js doldurur (geliştirmede boş kalır).
+const PRECACHE = self.__PRECACHE_MANIFEST__ || [];
+const VERSION = self.__BUILD_VERSION__ || 'dev';
+const CACHE = `chatapp-${VERSION}`;
+const RUNTIME = 'chatapp-runtime';
+const SHELL = APP_ROOT + 'index.html';
+const ICON = APP_ROOT + 'icons/icon-192.png';
 const BADGE = APP_ROOT + 'icons/badge-96.png';
+const NAV_TIMEOUT_MS = 4000;
+// Eski (paketlenmiş) sürümün önbellek adları: chatapp-v1 … chatapp-v13.
+const isLegacyCache = (k) => /^chatapp-v\d+$/.test(k);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll([APP_ROOT, ICON, BADGE]))
-      .catch(() => undefined)
+    (async () => {
+      const cache = await caches.open(CACHE);
+      await cache.addAll(PRECACHE.length ? PRECACHE : [APP_ROOT, ICON, BADGE]);
+      // İlk kurulumda ve eski sürümden geçişte hemen etkinleş; sonraki güncellemelerde
+      // kullanıcı "Yenile"ye basana kadar bekle.
+      const legacy = (await caches.keys()).some(isLegacyCache);
+      if (!self.registration.active || legacy) await self.skipWaiting();
+    })()
   );
-  self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+      const legacy = keys.some(isLegacyCache);
+      await Promise.all(keys.filter((k) => k !== CACHE && k !== RUNTIME).map((k) => caches.delete(k)));
       await self.clients.claim();
+      // Eski sürümden geçiş: açık eski sayfaları yeni uygulamaya yeniden yükle.
+      if (legacy) {
+        const windows = await self.clients.matchAll({ type: 'window' });
+        await Promise.all(windows.map((w) => w.navigate(w.url).catch(() => undefined)));
+      }
     })()
   );
 });
+
+function timeout(ms) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+}
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
@@ -36,37 +62,42 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin || !url.pathname.startsWith(APP_ROOT)) return;
 
   if (req.mode === 'navigate') {
-    // Ağ öncelikli; çevrimdışıysa son kopya.
+    // Uygulama sayfası: ağ öncelikli (4 sn), çevrimdışıysa önbellekteki kabuk.
+    if (url.pathname.endsWith('.html') && !url.pathname.endsWith('/index.html')) {
+      event.respondWith(fetch(req).catch(() => caches.match(req).then((r) => r || caches.match(SHELL))));
+      return;
+    }
     event.respondWith(
-      fetch(req)
+      Promise.race([fetch(req), timeout(NAV_TIMEOUT_MS)])
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(APP_ROOT, copy));
+            caches.open(CACHE).then((c) => c.put(SHELL, copy));
           }
           return res;
         })
-        .catch(() => caches.match(APP_ROOT).then((r) => r || Response.error()))
+        .catch(async () => (await caches.match(SHELL)) || (await caches.match(APP_ROOT)) || Response.error())
     );
     return;
   }
 
-  // Yalnızca derlenmiş (içerik özetli adlı) dosyalar ve ikonlar önbellekten: geliştirme
-  // sunucusundaki kaynak modülleri ve diğer her şey doğrudan ağdan gelir.
-  if (!url.pathname.startsWith(APP_ROOT + 'assets/') && !url.pathname.startsWith(APP_ROOT + 'icons/')) return;
-  event.respondWith(
-    caches.match(req).then(
-      (cached) =>
-        cached ||
-        fetch(req).then((res) => {
-          if (res && res.ok && res.type === 'basic') {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-    )
-  );
+  // Derleme çıktısı ve ikonlar: önbellek öncelikli.
+  if (url.pathname.startsWith(APP_ROOT + 'assets/') || url.pathname.startsWith(APP_ROOT + 'icons/')) {
+    event.respondWith(
+      caches.match(req).then(
+        (cached) =>
+          cached ||
+          fetch(req).then((res) => {
+            if (res && res.ok && res.type === 'basic') {
+              const copy = res.clone();
+              caches.open(RUNTIME).then((c) => c.put(req, copy));
+            }
+            return res;
+          })
+      )
+    );
+  }
+  // Diğer her şey (geliştirme sunucusu modülleri dahil) doğrudan ağdan.
 });
 
 function parsePayload(event) {
@@ -103,7 +134,8 @@ self.addEventListener('push', (event) => {
       // ama başka ekrandaysa da sessiz: o durumda uygulama içi bant ve kısa ses çalar.
       const showingChat = !!chatId && visible.some((c) => chatIdOfClient(c) === chatId);
       const focusedApp = visible.some((c) => c.focused);
-      const silent = showingChat || focusedApp;
+      // Test bildirimi her zaman sesli gösterilir (kullanıcı "çalışıyor mu?" diye bakıyor).
+      const silent = data.type !== 'test' && (showingChat || focusedApp);
 
       if (data.badge && self.navigator && self.navigator.setAppBadge) {
         const n = Number(data.badge);

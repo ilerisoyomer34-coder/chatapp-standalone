@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { auth } from '../firebase.js';
+import { sendTestPush, TEST_PUSH_DELAY_SECONDS } from '../lib/api.js';
 import { friendlyError } from '../lib/errors.js';
 import { Icon } from '../lib/icons.jsx';
-import { deviceInfo, enablePush, permissionState } from '../lib/push.js';
+import { deviceInfo, enablePush, permissionState, pushDiagnostics, syncPushToken } from '../lib/push.js';
 
 export function usePermissionState() {
   const [state, setState] = useState(permissionState);
@@ -62,6 +64,100 @@ function BlockedHelp({ t }) {
   );
 }
 
+// Test bildirimi hatalarını kullanıcının (ve kurulumu yapanın) anlayacağı dile çevirir.
+function testPushError(err) {
+  const code = (err && err.code) || '';
+  if (code === 'functions/unauthenticated' && auth.currentUser) {
+    return 'Sunucu isteği doğrulayamadı (App Check). Yönetici App Check ayarını kontrol etmeli.';
+  }
+  if (code === 'functions/not-found' || code === 'functions/internal' || code === 'functions/unavailable') {
+    return 'Bildirim sunucusuna ulaşılamadı. Sunucu tarafı (Cloud Functions) henüz kurulmamış olabilir.';
+  }
+  return friendlyError(err, 'test bildirimi');
+}
+
+function Diagnostics({ t, uid, version }) {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    pushDiagnostics(uid).then((v) => alive && setD(v));
+    return () => {
+      alive = false;
+    };
+  }, [uid, version]);
+  if (!d) return null;
+  const rows = [
+    ['Tarayıcı desteği', d.supported && !d.needsInstall, d.needsInstall ? 'Önce ana ekrana ekle' : d.supported ? 'Var' : 'Yok'],
+    ['Bildirim izni', d.permission === 'granted', d.permission === 'granted' ? 'Verildi' : d.permission === 'denied' ? 'Engellendi' : 'Verilmedi'],
+    ['Servis çalışanı', d.swActive, d.swActive ? 'Etkin' : 'Etkin değil'],
+    ['Bildirim anahtarı (VAPID)', d.vapid, d.vapid ? 'Tanımlı' : 'Eksik — yönetici tanımlamalı'],
+    ['Bu cihazın kaydı', d.registered, d.registered ? 'Kayıtlı' : 'Kayıtlı değil'],
+  ];
+  return (
+    <div style={{ background: t.surface, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: t.textPrimary }}>
+      {rows.map(([label, ok, text]) => (
+        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+          <Icon name={ok ? 'check' : 'x'} size={16} color={ok ? t.accent : t.error} />
+          <span style={{ flex: 1 }}>{label}</span>
+          <span style={{ color: ok ? t.textSecondary : t.error, fontWeight: ok ? 400 : 600 }}>{text}</span>
+        </div>
+      ))}
+      <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 4 }}>
+        Bildirim sunucusu: {d.server === 'worker' ? 'Cloudflare Worker' : 'Cloud Functions'}
+      </div>
+    </div>
+  );
+}
+
+function TestPush({ t, uid, toast }) {
+  const [busy, setBusy] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
+  const [version, setVersion] = useState(0);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      // Kaydı tazele: token yoksa veya değiştiyse önce yaz.
+      const token = await syncPushToken(uid);
+      if (!token) {
+        toast('Bu cihaz bildirimlere kaydedilemedi. Aşağıdaki sorun giderme listesine bak.', 'no');
+        setShowDiag(true);
+        return;
+      }
+      toast(`Test bildirimi ${TEST_PUSH_DELAY_SECONDS} saniye içinde gelecek. İstersen uygulamayı kapat ya da telefonu kilitle.`);
+      const res = await sendTestPush(token);
+      if (!res || !res.tokens) {
+        toast('Bu hesapta kayıtlı cihaz bulunamadı. Bildirimleri kapatıp yeniden aç.', 'no');
+        setShowDiag(true);
+      } else if (!res.sent) {
+        toast('Bildirim gönderilemedi. Birkaç dakika sonra yeniden dene.', 'no');
+      }
+    } catch (err) {
+      toast(testPushError(err), 'no');
+      setShowDiag(true);
+    } finally {
+      setBusy(false);
+      setVersion((v) => v + 1);
+    }
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" onClick={run} disabled={busy} className="cx-tap" style={{ height: 40, padding: '0 14px', borderRadius: 11, border: `1.5px solid ${t.accent}`, background: 'transparent', color: t.accent, fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 7 }}>
+          {busy ? <span className="cx-spinner" aria-hidden="true" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="send" size={16} />}
+          Test bildirimi gönder
+        </button>
+        <button type="button" onClick={() => setShowDiag((v) => !v)} aria-expanded={showDiag} className="cx-tap" style={{ height: 40, padding: '0 12px', borderRadius: 11, border: 'none', background: 'transparent', color: t.textSecondary, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>
+          Sorun giderme
+          <Icon name={showDiag ? 'chevronUp' : 'chevronDown'} size={16} />
+        </button>
+      </div>
+      {showDiag ? <Diagnostics t={t} uid={uid} version={version} /> : null}
+    </>
+  );
+}
+
 const LABELS = {
   granted: { text: 'Açık', color: (t) => t.accent },
   default: { text: 'Kapalı', color: (t) => t.textSecondary },
@@ -106,9 +202,12 @@ export default function NotificationSettings({ t, uid, toast }) {
       {state === 'needs-install' ? <IosInstallGuide t={t} /> : null}
       {state === 'denied' ? <BlockedHelp t={t} /> : null}
       {state === 'granted' ? (
-        <div style={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.5 }}>
-          Uygulama kapalıyken ve telefon kilitliyken bile yeni mesaj ve sohbet isteklerinde bildirim alırsın.
-        </div>
+        <>
+          <div style={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.5 }}>
+            Uygulama kapalıyken ve telefon kilitliyken bile yeni mesaj ve sohbet isteklerinde bildirim alırsın.
+          </div>
+          <TestPush t={t} uid={uid} toast={toast} />
+        </>
       ) : null}
     </div>
   );

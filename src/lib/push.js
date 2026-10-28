@@ -1,7 +1,7 @@
 // Web Push (Firebase Cloud Messaging) istemci tarafı.
 // İzin yalnızca kullanıcının dokunduğu "Bildirimleri aç" düğmesiyle istenir.
-import { ref, serverTimestamp, update } from 'firebase/database';
-import { app, db, VAPID_KEY } from '../firebase.js';
+import { get, ref, serverTimestamp, update } from 'firebase/database';
+import { app, db, PUSH_WORKER_URL, VAPID_KEY } from '../firebase.js';
 import { getServiceWorkerRegistration } from './sw.js';
 
 const TOKEN_KEY = 'chatapp_fcm_token';
@@ -79,6 +79,43 @@ export async function syncPushToken(uid) {
   await update(ref(db), updates);
   writeStored({ uid, token });
   return token;
+}
+
+// Bu cihazın bu hesaba kayıtlı token'ı (yoksa null).
+export function deviceToken(uid) {
+  const stored = readStored();
+  return stored && stored.uid === uid ? stored.token : null;
+}
+
+// "Bildirim sorun giderme" listesi: telefona bildirim gelmiyorsa hangi halkanın eksik olduğunu gösterir.
+export async function pushDiagnostics(uid) {
+  const info = deviceInfo();
+  const permission = permissionState();
+  let swActive = false;
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL) : null;
+    swActive = !!(reg && reg.active);
+  } catch {
+    swActive = false;
+  }
+  const token = deviceToken(uid);
+  let registered = false;
+  if (token) {
+    try {
+      registered = (await get(ref(db, `pushTokens/${uid}/${token}`))).exists();
+    } catch {
+      registered = false;
+    }
+  }
+  return {
+    supported: info.supported,
+    needsInstall: info.needsInstall,
+    permission,
+    swActive,
+    vapid: !!VAPID_KEY,
+    registered,
+    server: PUSH_WORKER_URL ? 'worker' : 'functions',
+  };
 }
 
 export async function enablePush(uid) {
