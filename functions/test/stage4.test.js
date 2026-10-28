@@ -49,7 +49,13 @@ beforeAll(async () => {
 beforeEach(async () => {
   deleted.length = 0;
   const users = {};
-  for (const [u, n] of [[A, 'Alice'], [B, 'Bob'], [C, 'Carol'], [D, 'Dave']]) users[u] = { username: n.toLowerCase(), name: n, createdAt: 1 };
+  for (const [u, n] of [
+    [A, 'Alice'],
+    [B, 'Bob'],
+    [C, 'Carol'],
+    [D, 'Dave'],
+  ])
+    users[u] = { username: n.toLowerCase(), name: n, createdAt: 1 };
   await db.ref().set({
     users,
     usernames: { alice: A, bob: B, carol: C, dave: D },
@@ -72,10 +78,18 @@ beforeEach(async () => {
 
 describe('gruplar', () => {
   it('yalnızca sohbet edilen kişilerle grup kurulur; sistem mesajı ve sohbet listeleri yazılır', async () => {
-    await expect(manageGroup(db, A, { action: 'create', name: 'Ekip', members: [B, D] })).rejects.toMatchObject({ code: 'failed-precondition' });
+    await expect(manageGroup(db, A, { action: 'create', name: 'Ekip', members: [B, D] })).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
     const { chatId } = await manageGroup(db, A, { action: 'create', name: '  Ekip  ', members: [B, C] });
     const chat = (await db.ref(`chats/${chatId}`).get()).val();
-    expect(chat).toMatchObject({ type: 'group', name: 'Ekip', members: { [A]: true, [B]: true, [C]: true }, admins: { [A]: true }, createdBy: A });
+    expect(chat).toMatchObject({
+      type: 'group',
+      name: 'Ekip',
+      members: { [A]: true, [B]: true, [C]: true },
+      admins: { [A]: true },
+      createdBy: A,
+    });
     const msgs = Object.values((await db.ref(`messages/${chatId}`).get()).val());
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({ from: A, system: 'created', text: 'Alice, "Ekip" grubunu oluşturdu.' });
@@ -84,7 +98,9 @@ describe('gruplar', () => {
 
   it('en fazla 50 üye', async () => {
     const many = Array.from({ length: MAX_GROUP_MEMBERS }, (_, i) => uid(`u${i}x`));
-    await expect(manageGroup(db, A, { action: 'create', name: 'Kalabalık', members: many })).rejects.toMatchObject({ code: 'invalid-argument' });
+    await expect(manageGroup(db, A, { action: 'create', name: 'Kalabalık', members: many })).rejects.toMatchObject({
+      code: 'invalid-argument',
+    });
   });
 
   it('yönetici olmayan üye ekleyemez/çıkaramaz; yönetici çıkarınca kişi erişimini kaybeder', async () => {
@@ -111,11 +127,15 @@ describe('gruplar', () => {
 
   it('son yöneticinin yetkisi alınamaz; ad değişikliği sistem mesajı yazar', async () => {
     const { chatId } = await manageGroup(db, A, { action: 'create', name: 'Ekip', members: [B] });
-    await expect(manageGroup(db, A, { action: 'setAdmin', chatId, uid: A, admin: false })).rejects.toMatchObject({ code: 'failed-precondition' });
+    await expect(manageGroup(db, A, { action: 'setAdmin', chatId, uid: A, admin: false })).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
     await manageGroup(db, A, { action: 'setAdmin', chatId, uid: B, admin: true });
     await manageGroup(db, B, { action: 'update', chatId, name: 'Yeni Ad' });
     expect((await db.ref(`chats/${chatId}/name`).get()).val()).toBe('Yeni Ad');
-    await expect(manageGroup(db, B, { action: 'update', chatId, photoURL: 'javascript:alert(1)' })).rejects.toMatchObject({ code: 'invalid-argument' });
+    await expect(manageGroup(db, B, { action: 'update', chatId, photoURL: 'javascript:alert(1)' })).rejects.toMatchObject({
+      code: 'invalid-argument',
+    });
   });
 
   it('grup mesajı bildirimi "Grup adı · Gönderen" başlıklı; sistem mesajında ayrılan kişi için de çalışır', async () => {
@@ -125,7 +145,12 @@ describe('gruplar', () => {
     const push = { send: async (u, tokens, data) => (calls.push(data), 1) };
     await handleMessageCreated(db, push, chatId, 'g1', { from: A, text: 'Toplantı 5te', ts: Date.now() });
     expect(calls[0]).toMatchObject({ title: 'Ekip · Alice', body: 'Toplantı 5te' });
-    const r = await handleMessageCreated(db, push, chatId, 's1', { from: uid('gone'), system: 'left', text: 'X gruptan ayrıldı.', ts: Date.now() + 1 });
+    const r = await handleMessageCreated(db, push, chatId, 's1', {
+      from: uid('gone'),
+      system: 'left',
+      text: 'X gruptan ayrıldı.',
+      ts: Date.now() + 1,
+    });
     expect(r.every((x) => x.skipped === 'system')).toBe(true);
     expect((await db.ref(`userChats/${B}/${chatId}/lastMessage/text`).get()).val()).toBe('X gruptan ayrıldı.');
   });
@@ -152,7 +177,14 @@ describe('mesaj düzenleme/silme', () => {
   });
   it('düzenleme yalnızca o mesaj son mesajsa önizlemeyi değiştirir', async () => {
     await db.ref(`userChats/${B}/${direct(A, B)}/lastMessage`).set({ text: 'Başka', from: B, ts: 99 });
-    const res = await handleMessageUpdated(db, deletePrefix, direct(A, B), 'm1', { from: A, text: 'Selam', ts: 10 }, { from: A, text: 'Selam!', ts: 10, editedAt: 11 });
+    const res = await handleMessageUpdated(
+      db,
+      deletePrefix,
+      direct(A, B),
+      'm1',
+      { from: A, text: 'Selam', ts: 10 },
+      { from: A, text: 'Selam!', ts: 10, editedAt: 11 }
+    );
     expect(res.previewUpdated).toBe(0);
   });
 });
@@ -173,7 +205,9 @@ describe('hesap silme', () => {
     await auth.createUser({ uid: A, email: 'alice@example.com', password: 'sifre1234' });
   });
   it('yakın zamanda giriş yapılmamışsa reddedilir', async () => {
-    await expect(deleteAccount(db, auth, deletePrefix, A, Math.floor(Date.now() / 1000) - 3600)).rejects.toMatchObject({ code: 'failed-precondition' });
+    await expect(deleteAccount(db, auth, deletePrefix, A, Math.floor(Date.now() / 1000) - 3600)).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
   });
   it('profil, kullanıcı adı ve kişisel düğümler silinir; mesajları "silindi" olur; Auth hesabı kalkar', async () => {
     const { chatId: g } = await manageGroup(db, A, { action: 'create', name: 'Ekip', members: [B, C] });
@@ -198,6 +232,6 @@ describe('hesap silme', () => {
 
 describe('normalizeUpdates', () => {
   it('üst yol yazılıyorsa alt yolları atar', () => {
-    expect(normalizeUpdates({ 'a': null, 'a/b': 1, 'a-b': 2, 'a-b/c': 3, 'x/y': 4 })).toEqual({ a: null, 'a-b': 2, 'x/y': 4 });
+    expect(normalizeUpdates({ a: null, 'a/b': 1, 'a-b': 2, 'a-b/c': 3, 'x/y': 4 })).toEqual({ a: null, 'a-b': 2, 'x/y': 4 });
   });
 });

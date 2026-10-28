@@ -14,10 +14,7 @@ export interface PushSender {
   send(uid: string, tokens: string[], data: PushData): Promise<number>;
 }
 
-const INVALID_TOKEN_CODES = new Set([
-  'messaging/registration-token-not-registered',
-  'messaging/invalid-registration-token',
-]);
+const INVALID_TOKEN_CODES = new Set(['messaging/registration-token-not-registered', 'messaging/invalid-registration-token']);
 
 // FCM: yalnızca "data" yükü gönderilir; bildirimi servis çalışanı gösterir (çift bildirim olmaz).
 export function fcmSender(db: Database, messaging: Messaging): PushSender {

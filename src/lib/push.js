@@ -10,8 +10,7 @@ export function deviceInfo() {
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(ua);
-  const standalone =
-    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
   return {
     isIOS,
@@ -60,7 +59,7 @@ async function messagingModule() {
 export async function syncPushToken(uid) {
   if (!uid || permissionState() !== 'granted') return null;
   if (!VAPID_KEY) {
-    console.error('[ChatApp] VITE_FIREBASE_VAPID_KEY eksik; bildirim token\'ı alınamadı.');
+    console.error("[ChatApp] VITE_FIREBASE_VAPID_KEY eksik; bildirim token'ı alınamadı.");
     return null;
   }
   const m = await messagingModule();

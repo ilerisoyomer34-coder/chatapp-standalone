@@ -8,8 +8,7 @@ interface ChatNode {
   admins?: Record<string, boolean>;
 }
 
-const onlyTrue = (m: Record<string, boolean> | undefined) =>
-  Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v === true));
+const onlyTrue = (m: Record<string, boolean> | undefined) => Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v === true));
 
 export async function syncChatAccess(fs: Firestore, chatId: string, chat: ChatNode | null): Promise<'deleted' | 'set'> {
   const ref = fs.collection('chatAccess').doc(chatId);

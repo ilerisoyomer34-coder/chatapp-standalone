@@ -59,7 +59,20 @@ export function initials(name) {
   );
 }
 
-const PALETTE = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#00838F', '#00897B', '#43A047', '#F57C00', '#6D4C41', '#546E7A'];
+const PALETTE = [
+  '#F44336',
+  '#E91E63',
+  '#9C27B0',
+  '#673AB7',
+  '#3F51B5',
+  '#2196F3',
+  '#00838F',
+  '#00897B',
+  '#43A047',
+  '#F57C00',
+  '#6D4C41',
+  '#546E7A',
+];
 export function colorFor(key) {
   let h = 0;
   const s = String(key || 'x');

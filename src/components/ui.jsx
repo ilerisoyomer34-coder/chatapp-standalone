@@ -32,7 +32,10 @@ export function Avatar({ name, uid, color, photoURL, size = 46, dim = false, rin
 export function Field({ t, label, icon, prefix, id, error, ...inputProps }) {
   return (
     <div>
-      <label htmlFor={id} style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: t.textSecondary, marginBottom: 7, letterSpacing: 0.2 }}>
+      <label
+        htmlFor={id}
+        style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: t.textSecondary, marginBottom: 7, letterSpacing: 0.2 }}
+      >
         {label}
       </label>
       <div
@@ -52,7 +55,16 @@ export function Field({ t, label, icon, prefix, id, error, ...inputProps }) {
         <input
           id={id}
           {...inputProps}
-          style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, fontWeight: 500, color: t.textPrimary }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            fontSize: 15,
+            fontWeight: 500,
+            color: t.textPrimary,
+          }}
         />
       </div>
     </div>
@@ -94,7 +106,19 @@ export function PrimaryButton({ t, children, busy, icon = 'arrowRight', style, .
 export function ErrorLine({ t, children }) {
   if (!children) return null;
   return (
-    <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 14, color: t.error, fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+    <div
+      role="alert"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginTop: 14,
+        color: t.error,
+        fontSize: 13,
+        fontWeight: 600,
+        lineHeight: 1.45,
+      }}
+    >
       <Icon name="info" size={16} style={{ marginTop: 1 }} />
       <span>{children}</span>
     </div>
@@ -141,7 +165,18 @@ export function Toast({ t, toast, onDone }) {
 
 export function SectionTitle({ t, children, color, icon }) {
   return (
-    <div style={{ padding: '14px 18px 4px', fontSize: 12, fontWeight: 700, color: color || t.textSecondary, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div
+      style={{
+        padding: '14px 18px 4px',
+        fontSize: 12,
+        fontWeight: 700,
+        color: color || t.textSecondary,
+        letterSpacing: 0.5,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}
+    >
       {icon ? <Icon name={icon} size={14} /> : null}
       {children}
     </div>
@@ -156,7 +191,19 @@ export function IconButton({ label, icon, onClick, size = 40, iconSize = 21, col
       className="cx-tap"
       aria-label={label}
       title={label}
-      style={{ width: size, height: size, borderRadius: '50%', border: 'none', background: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0, ...style }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: 'none',
+        background: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color,
+        flexShrink: 0,
+        ...style,
+      }}
     >
       <Icon name={icon} size={iconSize} />
     </button>

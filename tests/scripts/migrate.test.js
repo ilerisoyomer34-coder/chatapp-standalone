@@ -11,8 +11,8 @@ const NEW_ALI = 'ali0000000000000000000000000';
 
 const legacy = {
   users: {
-    'ömer': { username: 'ömer', name: 'Ömer', pass: '1234' },
-    'ali_çelik': { username: 'ali_çelik', name: 'Ali', pass: 'x' },
+    ömer: { username: 'ömer', name: 'Ömer', pass: '1234' },
+    ali_çelik: { username: 'ali_çelik', name: 'Ali', pass: 'x' },
     ab: { username: 'ab', name: 'Kısa', pass: 'x' },
   },
   chats: [{ id: 'c1', members: ['ömer', 'ali_çelik'], ts: 100 }],

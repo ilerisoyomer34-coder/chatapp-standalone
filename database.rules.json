@@ -68,10 +68,7 @@
     },
     "requests": {
       ".read": "auth != null && (query.orderByChild === 'to' || query.orderByChild === 'from') && query.equalTo === auth.uid",
-      ".indexOn": [
-        "to",
-        "from"
-      ],
+      ".indexOn": ["to", "from"],
       "$requestId": {
         ".read": "auth != null && (data.child('from').val() === auth.uid || data.child('to').val() === auth.uid)",
         ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && ((newData.exists() && newData.child('from').val() === auth.uid && newData.child('status').val() === 'pending' && (!data.exists() || (data.child('status').val() === 'rejected' && data.child('ts').val() < now - 86400000)) && root.child('requests').child(newData.child('to').val() + '_' + auth.uid).child('status').val() !== 'pending' && !root.child('blocks').child(newData.child('to').val()).child(auth.uid).exists() && (newData.parent().parent().child('requestQuota').child(auth.uid).child('count').val() !== root.child('requestQuota').child(auth.uid).child('count').val() || newData.parent().parent().child('requestQuota').child(auth.uid).child('windowStart').val() !== root.child('requestQuota').child(auth.uid).child('windowStart').val())) || (data.exists() && newData.exists() && data.child('to').val() === auth.uid && data.child('status').val() === 'pending' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected')) || (data.exists() && newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() !== 'pending' && newData.child('status').val() === data.child('status').val()) || (data.exists() && !newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() === 'pending'))",
@@ -147,9 +144,7 @@
     "messages": {
       "$chatId": {
         ".read": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true",
-        ".indexOn": [
-          "ts"
-        ],
+        ".indexOn": ["ts"],
         "$messageId": {
           ".write": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true && ((!data.exists() && newData.child('from').val() === auth.uid && (root.child('chats').child($chatId).child('type').val() !== 'direct' || !root.child('blocks').child($chatId.replace(auth.uid, '').replace('_', '')).child(auth.uid).exists())) || (data.exists() && data.child('from').val() === auth.uid))",
           ".validate": "newData.hasChildren(['from', 'ts']) && (newData.hasChild('text') || newData.hasChild('attachment') || newData.child('deleted').val() === true || newData.hasChild('system'))",

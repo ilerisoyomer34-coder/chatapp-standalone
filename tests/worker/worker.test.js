@@ -72,7 +72,10 @@ describe('serviceAccessToken', () => {
     const [h, p, s] = assertion.split('.');
     const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', keyPair.publicKey, Buffer.from(s, 'base64url'), enc.encode(`${h}.${p}`));
     expect(ok).toBe(true);
-    expect(JSON.parse(Buffer.from(p, 'base64url'))).toMatchObject({ iss: 'push@chatapp-d8a5b.iam.gserviceaccount.com', aud: 'https://oauth2.googleapis.com/token' });
+    expect(JSON.parse(Buffer.from(p, 'base64url'))).toMatchObject({
+      iss: 'push@chatapp-d8a5b.iam.gserviceaccount.com',
+      aud: 'https://oauth2.googleapis.com/token',
+    });
   });
 });
 

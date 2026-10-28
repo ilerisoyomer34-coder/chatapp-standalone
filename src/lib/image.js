@@ -45,9 +45,7 @@ export async function resizeImage(file, maxSize, { type = 'image/jpeg', quality 
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, sx, sy, sw, sh, 0, 0, tw, th);
   if (src.close) src.close();
-  const blob = await new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob'))), type, quality)
-  );
+  const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob'))), type, quality));
   return { blob, width: w, height: h };
 }
 

@@ -6,7 +6,7 @@ import { ActionSheet } from '../components/Modal.jsx';
 import NotificationCard from '../components/NotificationCard.jsx';
 import { Avatar, IconButton, SectionTitle, Toast } from '../components/ui.jsx';
 import { db } from '../firebase.js';
-import { useChatNodes, useDbValue, useIncomingRequests, useOutgoingRequests, useProfiles, useUserChats } from '../hooks/data.js';
+import { EMPTY, useChatNodes, useDbValue, useIncomingRequests, useOutgoingRequests, useProfiles, useUserChats } from '../hooks/data.js';
 import {
   chatIdFor,
   ensureUserChat,
@@ -88,7 +88,7 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
   const { chats, loading: chatsLoading } = useUserChats(uid);
   const incoming = useIncomingRequests(uid);
   const outgoing = useOutgoingRequests(uid);
-  const blocks = useDbValue(`blocks/${uid}`).value || {};
+  const blocks = useDbValue(`blocks/${uid}`).value || EMPTY;
   const pendingIncoming = useMemo(() => incoming.filter((r) => r.status === 'pending' && blocks[r.from] !== true), [incoming, blocks]);
 
   // ── oturum: presence + push token + temizlik ──
@@ -191,7 +191,16 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
       }
       const other = directOther(chatId);
       const p = other ? profiles[other] : undefined;
-      return { type: 'direct', uid: other, name: p === null ? 'Silinmiş hesap' : p?.name || '…', username: p?.username, color: p?.color, photoURL: p?.photoURL, avatarKey: other, disabled: p?.disabled };
+      return {
+        type: 'direct',
+        uid: other,
+        name: p === null ? 'Silinmiş hesap' : p?.name || '…',
+        username: p?.username,
+        color: p?.color,
+        photoURL: p?.photoURL,
+        avatarKey: other,
+        disabled: p?.disabled,
+      };
     },
     [chatNodes, directOther, profiles]
   );
@@ -303,7 +312,11 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
 
   // ── listeler ──
   const sorted = useMemo(
-    () => [...chats].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (Number(b.lastMessage?.ts) || b.updatedAt) - (Number(a.lastMessage?.ts) || a.updatedAt)),
+    () =>
+      [...chats].sort(
+        (a, b) =>
+          Number(b.pinned) - Number(a.pinned) || (Number(b.lastMessage?.ts) || b.updatedAt) - (Number(a.lastMessage?.ts) || a.updatedAt)
+      ),
     [chats]
   );
   const archivedChats = sorted.filter((c) => c.archived);
@@ -315,7 +328,10 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
   const chatSet = new Set(chatIds);
 
   const forwardTargets = useMemo(
-    () => sorted.filter((c) => metaOf(c.chatId).type === 'group' || (directOther(c.chatId) && blocks[directOther(c.chatId)] !== true)).map((c) => ({ chatId: c.chatId, ...metaOf(c.chatId) })),
+    () =>
+      sorted
+        .filter((c) => metaOf(c.chatId).type === 'group' || (directOther(c.chatId) && blocks[directOther(c.chatId)] !== true))
+        .map((c) => ({ chatId: c.chatId, ...metaOf(c.chatId) })),
     [sorted, metaOf, directOther, blocks]
   );
 
@@ -369,11 +385,18 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
       : {
           label: 'Sabitle',
           icon: 'pin',
-          onClick: () => (pinnedCount >= MAX_PINNED ? toast(`En fazla ${MAX_PINNED} sohbet sabitlenebilir.`, 'no') : pref(c.chatId, { pinned: true })),
+          onClick: () =>
+            pinnedCount >= MAX_PINNED ? toast(`En fazla ${MAX_PINNED} sohbet sabitlenebilir.`, 'no') : pref(c.chatId, { pinned: true }),
         },
-    c.archived ? { label: 'Arşivden çıkar', icon: 'archive', onClick: () => pref(c.chatId, { archived: null }, 'Arşivden çıkarıldı') } : { label: 'Arşivle', icon: 'archive', onClick: () => pref(c.chatId, { archived: true, pinned: null }, 'Arşivlendi') },
-    isMuted(c.muted) ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(c.chatId, null) } : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteFor(c.chatId) },
-    c.unread > 0 ? { label: 'Okundu olarak işaretle', icon: 'checkCheck', onClick: () => markChatRead(uid, c.chatId).catch(() => {}) } : null,
+    c.archived
+      ? { label: 'Arşivden çıkar', icon: 'archive', onClick: () => pref(c.chatId, { archived: null }, 'Arşivden çıkarıldı') }
+      : { label: 'Arşivle', icon: 'archive', onClick: () => pref(c.chatId, { archived: true, pinned: null }, 'Arşivlendi') },
+    isMuted(c.muted)
+      ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(c.chatId, null) }
+      : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteFor(c.chatId) },
+    c.unread > 0
+      ? { label: 'Okundu olarak işaretle', icon: 'checkCheck', onClick: () => markChatRead(uid, c.chatId).catch(() => {}) }
+      : null,
   ];
 
   const chatRow = (c) => {
@@ -412,23 +435,71 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
         onPointerMove={cancelPress}
         onPointerCancel={cancelPress}
         className="cx-row"
-        style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '9px 16px', background: isActive ? t.surface : 'transparent', WebkitTouchCallout: 'none', userSelect: 'none' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 13,
+          padding: '9px 16px',
+          background: isActive ? t.surface : 'transparent',
+          WebkitTouchCallout: 'none',
+          userSelect: 'none',
+        }}
       >
         <Avatar name={meta.name} uid={meta.avatarKey} color={meta.color} photoURL={meta.photoURL} size={50} dim={meta.disabled} />
         <div style={{ flex: 1, minWidth: 0, borderBottom: `1px solid ${t.divider}`, paddingBottom: 11 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontSize: 15.5, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span
+              style={{
+                fontSize: 15.5,
+                fontWeight: 600,
+                color: t.textPrimary,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
               {meta.type === 'group' ? <Icon name="users" size={15} color={t.textSecondary} /> : null}
               {meta.name}
             </span>
-            <span style={{ fontSize: 11.5, color: c.unread > 0 && !isMuted(c.muted) ? t.accent : t.textSecondary, flexShrink: 0, fontWeight: 500 }}>{formatListTime(ts)}</span>
+            <span
+              style={{
+                fontSize: 11.5,
+                color: c.unread > 0 && !isMuted(c.muted) ? t.accentText : t.textSecondary,
+                flexShrink: 0,
+                fontWeight: 500,
+              }}
+            >
+              {formatListTime(ts)}
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 3 }}>
-            <span style={{ fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{preview}</span>
+            <span
+              style={{ fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}
+            >
+              {preview}
+            </span>
             {isMuted(c.muted) ? <Icon name="bellOff" size={14} color={t.textSecondary} /> : null}
             {c.pinned ? <Icon name="pin" size={14} color={t.textSecondary} /> : null}
             {c.unread > 0 ? (
-              <span aria-label={`${c.unread} okunmamış mesaj`} style={{ background: isMuted(c.muted) ? t.textSecondary : t.accent, color: '#fff', minWidth: 19, height: 19, padding: '0 6px', borderRadius: 10, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span
+                aria-label={`${c.unread} okunmamış mesaj`}
+                style={{
+                  background: isMuted(c.muted) ? t.textSecondary : t.accent,
+                  color: '#fff',
+                  minWidth: 19,
+                  height: 19,
+                  padding: '0 6px',
+                  borderRadius: 10,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 {c.unread > 99 ? '99+' : c.unread}
               </span>
             ) : null}
@@ -441,26 +512,71 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
   const sidebar =
     view === 'settings' ? (
       <Suspense fallback={<div style={{ flex: 1 }} />}>
-        <Settings t={t} me={me} email={user.email} theme={theme} onBack={() => setView('chats')} onLogout={onLogout} onAccountDeleted={onAccountDeleted} toast={toast} />
+        <Settings
+          t={t}
+          me={me}
+          email={user.email}
+          theme={theme}
+          onBack={() => setView('chats')}
+          onLogout={onLogout}
+          onAccountDeleted={onAccountDeleted}
+          toast={toast}
+        />
       </Suspense>
     ) : (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* başlık */}
-        <div style={{ minHeight: 62, paddingTop: 'env(safe-area-inset-top)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 16, paddingRight: 6, background: t.appbarBg, color: t.appbarText }}>
-          <button type="button" onClick={() => setView('settings')} aria-label="Profil ve ayarlar" style={{ border: 'none', background: 'none', padding: 0, borderRadius: '50%' }}>
+        <div
+          style={{
+            minHeight: 62,
+            paddingTop: 'env(safe-area-inset-top)',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            paddingLeft: 16,
+            paddingRight: 6,
+            background: t.appbarBg,
+            color: t.appbarText,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setView('settings')}
+            aria-label="Profil ve ayarlar"
+            style={{ border: 'none', background: 'none', padding: 0, borderRadius: '50%' }}
+          >
             <Avatar name={me.name} uid={uid} color={me.color} photoURL={me.photoURL} size={38} />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me.name}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {me.name}
+            </div>
             <div style={{ fontSize: 12, opacity: 0.82 }}>@{me.username}</div>
           </div>
           <IconButton label="Yeni grup" icon="users" onClick={() => setCreatingGroup(true)} />
-          <IconButton label={theme.mode === 'dark' ? 'Açık tema' : 'Koyu tema'} icon={theme.mode === 'dark' ? 'sun' : 'moon'} onClick={theme.toggle} />
+          <IconButton
+            label={theme.mode === 'dark' ? 'Açık tema' : 'Koyu tema'}
+            icon={theme.mode === 'dark' ? 'sun' : 'moon'}
+            onClick={theme.toggle}
+          />
           <IconButton label="Ayarlar" icon="settings" onClick={() => setView('settings')} />
         </div>
 
         {!connected ? (
-          <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: t.warn, color: '#fff', fontSize: 13, fontWeight: 600 }}>
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              background: t.warn,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
             <Icon name="wifiOff" size={16} />
             Bağlantı yok, mesajlar bağlanınca gönderilecek.
           </div>
@@ -468,10 +584,47 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
 
         {/* arama */}
         <div style={{ padding: '12px 14px 8px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: t.surface, border: `1.5px solid ${queryText ? t.accent : t.divider}`, borderRadius: 12, padding: '0 14px', height: 44 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: t.surface,
+              border: `1.5px solid ${queryText ? t.accent : t.divider}`,
+              borderRadius: 12,
+              padding: '0 14px',
+              height: 44,
+            }}
+          >
             <Icon name="search" size={19} color={t.textSecondary} />
-            <input value={queryText} onChange={(e) => setQueryText(e.target.value)} placeholder="Kullanıcı adı ara ve istek gönder…" aria-label="Kullanıcı adı ara" autoCapitalize="off" autoCorrect="off" spellCheck={false} style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 14.5, color: t.textPrimary }} />
-            {queryText ? <IconButton label="Aramayı temizle" icon="x" onClick={() => setQueryText('')} size={28} iconSize={17} color={t.textSecondary} /> : null}
+            <input
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
+              placeholder="Kullanıcı adı ara ve istek gönder…"
+              aria-label="Kullanıcı adı ara"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 14.5,
+                color: t.textPrimary,
+              }}
+            />
+            {queryText ? (
+              <IconButton
+                label="Aramayı temizle"
+                icon="x"
+                onClick={() => setQueryText('')}
+                size={28}
+                iconSize={17}
+                color={t.textSecondary}
+              />
+            ) : null}
           </div>
         </div>
 
@@ -486,18 +639,49 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
               ) : null}
               {!results.loading && results.list.length === 0 ? (
                 <div style={{ padding: '30px 24px', textAlign: 'center', color: t.textSecondary }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 16, background: t.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 16,
+                      background: t.surface,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 14px',
+                    }}
+                  >
                     <Icon name="searchOff" size={28} />
                   </div>
                   <div style={{ fontSize: 14.5, fontWeight: 600, color: t.textPrimary }}>"@{q}" bulunamadı</div>
-                  <div style={{ fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>Bu kullanıcı adıyla başlayan kimse yok. Doğru yazdığından emin ol.</div>
+                  <div style={{ fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
+                    Bu kullanıcı adıyla başlayan kimse yok. Doğru yazdığından emin ol.
+                  </div>
                 </div>
               ) : null}
               {resultRows.map((r) => (
                 <div key={r.uid} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 16px' }}>
-                  <Avatar name={r.p?.name || r.username} uid={r.uid} color={r.p?.color} photoURL={r.p?.photoURL} size={48} dim={r.p?.disabled} />
+                  <Avatar
+                    name={r.p?.name || r.username}
+                    uid={r.uid}
+                    color={r.p?.color}
+                    photoURL={r.p?.photoURL}
+                    size={48}
+                    dim={r.p?.disabled}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.p?.name || '…'}</div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: t.textPrimary,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {r.p?.name || '…'}
+                    </div>
                     <div style={{ fontSize: 13, color: t.textSecondary }}>@{r.username}</div>
                   </div>
                   <button
@@ -505,7 +689,20 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
                     onClick={r.action}
                     disabled={r.disabled}
                     className="cx-tap"
-                    style={{ padding: '9px 15px', borderRadius: 21, border: 'none', background: r.primary ? t.accent : t.surface, color: r.primary ? '#fff' : r.disabled ? t.textSecondary : t.accent, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, opacity: r.disabled ? 0.7 : 1, whiteSpace: 'nowrap' }}
+                    style={{
+                      padding: '9px 15px',
+                      borderRadius: 21,
+                      border: 'none',
+                      background: r.primary ? t.accent : t.surface,
+                      color: r.primary ? '#fff' : r.disabled ? t.textSecondary : t.accent,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      opacity: r.disabled ? 0.7 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
                   >
                     <Icon name={r.icon} size={15} />
                     {r.label}
@@ -525,20 +722,69 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
                   {pendingIncoming.map((r) => {
                     const p = profiles[r.from];
                     return (
-                      <div key={r.id} style={{ margin: '8px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, padding: 13, boxShadow: '0 3px 14px rgba(0,0,0,.05)' }}>
+                      <div
+                        key={r.id}
+                        style={{
+                          margin: '8px 12px',
+                          background: t.bg,
+                          border: `1px solid ${t.divider}`,
+                          borderRadius: 15,
+                          padding: 13,
+                          boxShadow: '0 3px 14px rgba(0,0,0,.05)',
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <Avatar name={p?.name} uid={r.from} color={p?.color} photoURL={p?.photoURL} size={46} ring />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 700, color: t.textPrimary }}>{p?.name || '…'}</div>
-                            <div style={{ fontSize: 12.5, color: t.textSecondary }}>{p?.username ? `@${p.username} · ` : ''}sohbet isteği</div>
+                            <div style={{ fontSize: 12.5, color: t.textSecondary }}>
+                              {p?.username ? `@${p.username} · ` : ''}sohbet isteği
+                            </div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 9, marginTop: 11 }}>
-                          <button type="button" onClick={() => doRespond(r, false)} className="cx-tap" style={{ flex: 1, height: 38, borderRadius: 10, border: 'none', background: t.surface, color: t.textSecondary, fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            type="button"
+                            onClick={() => doRespond(r, false)}
+                            className="cx-tap"
+                            style={{
+                              flex: 1,
+                              height: 38,
+                              borderRadius: 10,
+                              border: 'none',
+                              background: t.surface,
+                              color: t.textSecondary,
+                              fontSize: 13.5,
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                            }}
+                          >
                             <Icon name="x" size={15} />
                             Reddet
                           </button>
-                          <button type="button" onClick={() => doRespond(r, true)} className="cx-tap" style={{ flex: 1, height: 38, borderRadius: 10, border: 'none', background: t.accent, color: '#fff', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 4px 12px ${t.accentShadow}` }}>
+                          <button
+                            type="button"
+                            onClick={() => doRespond(r, true)}
+                            className="cx-tap"
+                            style={{
+                              flex: 1,
+                              height: 38,
+                              borderRadius: 10,
+                              border: 'none',
+                              background: t.accent,
+                              color: '#fff',
+                              fontSize: 13.5,
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              boxShadow: `0 4px 12px ${t.accentShadow}`,
+                            }}
+                          >
                             <Icon name="check" size={15} />
                             Kabul et
                           </button>
@@ -555,14 +801,60 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
                   {outgoingNotices.map((r) => {
                     const ok = r.status === 'accepted';
                     return (
-                      <div key={r.id} style={{ margin: '7px 12px', display: 'flex', alignItems: 'flex-start', gap: 11, background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 13, padding: '11px 13px' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: ok ? t.accent : t.error, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                      <div
+                        key={r.id}
+                        style={{
+                          margin: '7px 12px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 11,
+                          background: t.bg,
+                          border: `1px solid ${t.divider}`,
+                          borderRadius: 13,
+                          padding: '11px 13px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 9,
+                            background: ok ? t.accent : t.error,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            flexShrink: 0,
+                          }}
+                        >
                           <Icon name={ok ? 'check' : 'x'} size={17} />
                         </div>
-                        <button type="button" onClick={() => (ok ? openChat(chatIdFor(uid, r.to)) : undefined)} style={{ flex: 1, minWidth: 0, fontSize: 13, color: t.textPrimary, lineHeight: 1.45, border: 'none', background: 'none', textAlign: 'left', padding: 0, cursor: ok ? 'pointer' : 'default' }}>
+                        <button
+                          type="button"
+                          onClick={() => (ok ? openChat(chatIdFor(uid, r.to)) : undefined)}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            fontSize: 13,
+                            color: t.textPrimary,
+                            lineHeight: 1.45,
+                            border: 'none',
+                            background: 'none',
+                            textAlign: 'left',
+                            padding: 0,
+                            cursor: ok ? 'pointer' : 'default',
+                          }}
+                        >
                           {ok ? `${nameOf(r.to)} isteğini kabul etti — sohbet başladı.` : `${nameOf(r.to)} sohbet isteğini reddetti.`}
                         </button>
-                        <IconButton label="Bildirimi kapat" icon="x" onClick={() => markRequestSeen(uid, r).catch((err) => friendlyError(err, 'bildirim kapatma'))} size={24} iconSize={16} color={t.textSecondary} />
+                        <IconButton
+                          label="Bildirimi kapat"
+                          icon="x"
+                          onClick={() => markRequestSeen(uid, r).catch((err) => friendlyError(err, 'bildirim kapatma'))}
+                          size={24}
+                          iconSize={16}
+                          color={t.textSecondary}
+                        />
                       </div>
                     );
                   })}
@@ -576,27 +868,75 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
               ) : null}
 
               {showArchived ? (
-                <button type="button" onClick={() => setShowArchived(false)} className="cx-row" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px 6px', border: 'none', background: 'none', color: t.accent, fontWeight: 700, fontSize: 13 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowArchived(false)}
+                  className="cx-row"
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 18px 6px',
+                    border: 'none',
+                    background: 'none',
+                    color: t.accentText,
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                >
                   <Icon name="back" size={18} /> ARŞİVLENMİŞ SOHBETLER
                 </button>
               ) : (
                 <>
                   <SectionTitle t={t}>SOHBETLER</SectionTitle>
                   {archivedChats.length ? (
-                    <button type="button" onClick={() => setShowArchived(true)} className="cx-row" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '10px 16px 10px 28px', border: 'none', background: 'none', color: t.textPrimary, fontSize: 15, fontWeight: 600, textAlign: 'left' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowArchived(true)}
+                      className="cx-row"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 13,
+                        padding: '10px 16px 10px 28px',
+                        border: 'none',
+                        background: 'none',
+                        color: t.textPrimary,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        textAlign: 'left',
+                      }}
+                    >
                       <Icon name="archive" size={20} color={t.accent} />
                       <span style={{ flex: 1 }}>Arşivlenmiş</span>
-                      <span style={{ fontSize: 12.5, color: archivedUnread ? t.accent : t.textSecondary, fontWeight: 700 }}>{archivedUnread || archivedChats.length}</span>
+                      <span style={{ fontSize: 12.5, color: archivedUnread ? t.accentText : t.textSecondary, fontWeight: 700 }}>
+                        {archivedUnread || archivedChats.length}
+                      </span>
                     </button>
                   ) : null}
                 </>
               )}
               {!chatsLoading && visibleChats.length === 0 ? (
                 <div style={{ padding: '34px 28px', textAlign: 'center', color: t.textSecondary }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 18, background: t.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 18,
+                      background: t.surface,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 16px',
+                    }}
+                  >
                     <Icon name={showArchived ? 'archive' : 'chat'} size={32} />
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: t.textPrimary }}>{showArchived ? 'Arşiv boş' : 'Henüz sohbetin yok'}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: t.textPrimary }}>
+                    {showArchived ? 'Arşiv boş' : 'Henüz sohbetin yok'}
+                  </div>
                   {!showArchived ? (
                     <div style={{ fontSize: 13, marginTop: 7, lineHeight: 1.55 }}>
                       Yukarıdan bir <b>kullanıcı adı</b> ara ve sohbet isteği gönder. Karşı taraf onayladığında konuşmanız burada açılır.
@@ -605,7 +945,9 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
                 </div>
               ) : null}
               {visibleChats.map(chatRow)}
-              <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: 11.5, color: t.textSecondary }}>Sohbete uzun basarak sabitleyebilir, arşivleyebilir veya sessize alabilirsin.</div>
+              <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: 11.5, color: t.textSecondary }}>
+                Sohbete uzun basarak sabitleyebilir, arşivleyebilir veya sessize alabilirsin.
+              </div>
               <div style={{ height: 'calc(12px + env(safe-area-inset-bottom))' }} />
             </>
           )}
@@ -616,7 +958,20 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: t.canvas, minHeight: 0 }}>
       {showSidebar ? (
-        <div style={{ width: desktop ? 380 : '100%', maxWidth: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', background: t.bg, borderRight: `1px solid ${t.divider}`, height: '100%' }}>{sidebar}</div>
+        <div
+          style={{
+            width: desktop ? 380 : '100%',
+            maxWidth: '100%',
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            background: t.bg,
+            borderRight: `1px solid ${t.divider}`,
+            height: '100%',
+          }}
+        >
+          {sidebar}
+        </div>
       ) : null}
 
       {showChat ? (
@@ -636,28 +991,64 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
           onMute={onMute}
         />
       ) : desktop ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40, background: t.emptyBg }}>
-          <div style={{ width: 110, height: 110, borderRadius: '50%', background: t.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent, marginBottom: 24 }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            padding: 40,
+            background: t.emptyBg,
+          }}
+        >
+          <div
+            style={{
+              width: 110,
+              height: 110,
+              borderRadius: '50%',
+              background: t.surface,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: t.accentText,
+              marginBottom: 24,
+            }}
+          >
             <Icon name="messageCircle" size={56} />
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: t.textPrimary, letterSpacing: -0.3 }}>ChatApp Web</div>
           <div style={{ fontSize: 15, color: t.textSecondary, marginTop: 12, maxWidth: 400, lineHeight: 1.6 }}>
             Soldan bir sohbet seç ya da bir <b>kullanıcı adı</b> arayıp istek gönder. Onaylanan istekler sohbete dönüşür.
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 28, fontSize: 13, color: t.textSecondary, fontWeight: 600 }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 28, fontSize: 13, color: t.textSecondary, fontWeight: 600 }}
+          >
             <Icon name="lock" size={16} />
             Bağlantın şifreli (HTTPS)
           </div>
         </div>
       ) : null}
 
-      {chatMenu ? <ActionSheet t={t} title={metaOf(chatMenu.chatId).name} items={chatMenuItems(chatMenu)} onClose={() => setChatMenu(null)} /> : null}
-      {muteFor ? <ActionSheet t={t} title="Bildirimleri sessize al" items={muteItems((until) => onMute(muteFor, until))} onClose={() => setMuteFor(null)} /> : null}
+      {chatMenu ? (
+        <ActionSheet t={t} title={metaOf(chatMenu.chatId).name} items={chatMenuItems(chatMenu)} onClose={() => setChatMenu(null)} />
+      ) : null}
+      {muteFor ? (
+        <ActionSheet
+          t={t}
+          title="Bildirimleri sessize al"
+          items={muteItems((until) => onMute(muteFor, until))}
+          onClose={() => setMuteFor(null)}
+        />
+      ) : null}
       {creatingGroup ? (
         <Suspense fallback={null}>
           <CreateGroup
             t={t}
-            contacts={forwardTargets.filter((x) => x.type === 'direct' && x.uid && !x.disabled).map((x) => ({ uid: x.uid, name: x.name, username: x.username, color: x.color, photoURL: x.photoURL }))}
+            contacts={forwardTargets
+              .filter((x) => x.type === 'direct' && x.uid && !x.disabled)
+              .map((x) => ({ uid: x.uid, name: x.name, username: x.username, color: x.color, photoURL: x.photoURL }))}
             onClose={() => setCreatingGroup(false)}
             onCreated={(chatId) => {
               setCreatingGroup(false);
@@ -668,7 +1059,14 @@ export default function Main({ t, theme, desktop, user, me, isAdmin, onLogout, o
           />
         </Suspense>
       ) : null}
-      <InAppBanner t={t} banner={banner} profile={banner ? profiles[banner.from] : null} chatName={banner && banner.chatId ? metaOf(banner.chatId) : null} onOpen={(b) => (b.chatId ? openChat(b.chatId) : setView('chats'))} onClose={clearBanner} />
+      <InAppBanner
+        t={t}
+        banner={banner}
+        profile={banner ? profiles[banner.from] : null}
+        chatName={banner && banner.chatId ? metaOf(banner.chatId) : null}
+        onOpen={(b) => (b.chatId ? openChat(b.chatId) : setView('chats'))}
+        onClose={clearBanner}
+      />
       <Toast t={t} toast={toastState} onDone={clearToast} />
     </div>
   );

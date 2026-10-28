@@ -15,7 +15,18 @@ const BASE = import.meta.env.BASE_URL;
 function Card({ t, title, icon, children }) {
   return (
     <section style={{ margin: '10px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, padding: 14 }}>
-      <h3 style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: t.textSecondary, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <h3
+        style={{
+          margin: '0 0 10px',
+          fontSize: 12,
+          fontWeight: 700,
+          color: t.textSecondary,
+          letterSpacing: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
         <Icon name={icon} size={14} />
         {title}
       </h3>
@@ -26,7 +37,24 @@ function Card({ t, title, icon, children }) {
 
 function RowButton({ t, icon, label, onClick, danger, hint }) {
   return (
-    <button type="button" onClick={onClick} className="cx-row" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 4px', border: 'none', background: 'none', color: danger ? t.error : t.textPrimary, fontSize: 14.5, textAlign: 'left', borderRadius: 8 }}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="cx-row"
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '11px 4px',
+        border: 'none',
+        background: 'none',
+        color: danger ? t.error : t.textPrimary,
+        fontSize: 14.5,
+        textAlign: 'left',
+        borderRadius: 8,
+      }}
+    >
       <Icon name={icon} size={19} color={danger ? t.error : t.textSecondary} />
       <span style={{ flex: 1 }}>{label}</span>
       {hint ? <span style={{ fontSize: 12.5, color: t.textSecondary }}>{hint}</span> : null}
@@ -75,24 +103,67 @@ function ProfileCard({ t, me, email, toast }) {
   return (
     <Card t={t} title="PROFİL" icon="user">
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button type="button" onClick={() => fileRef.current?.click()} aria-label="Profil fotoğrafını değiştir" style={{ position: 'relative', border: 'none', padding: 0, background: 'none', borderRadius: '50%' }}>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          aria-label="Profil fotoğrafını değiştir"
+          style={{ position: 'relative', border: 'none', padding: 0, background: 'none', borderRadius: '50%' }}
+        >
           <Avatar name={me.name} uid={me.uid} color={me.color} photoURL={me.photoURL} size={64} />
-          <span style={{ position: 'absolute', right: -2, bottom: -2, width: 26, height: 26, borderRadius: '50%', background: t.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${t.bg}` }}>
-            {photoBusy ? <span className="cx-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> : <Icon name="camera" size={13} />}
+          <span
+            style={{
+              position: 'absolute',
+              right: -2,
+              bottom: -2,
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
+              background: t.accent,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: `2px solid ${t.bg}`,
+            }}
+          >
+            {photoBusy ? (
+              <span className="cx-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+            ) : (
+              <Icon name="camera" size={13} />
+            )}
           </span>
         </button>
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => onPhoto(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => onPhoto(e.target.files?.[0]).finally(() => (e.target.value = ''))}
+        />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 16.5, fontWeight: 700, color: t.textPrimary, overflowWrap: 'anywhere' }}>{me.name}</div>
           <div style={{ fontSize: 13, color: t.textSecondary }}>@{me.username}</div>
           {email ? <div style={{ fontSize: 12.5, color: t.textSecondary, marginTop: 2, overflowWrap: 'anywhere' }}>{email}</div> : null}
         </div>
       </div>
-      {me.about && !editing ? <div style={{ marginTop: 12, fontSize: 14, color: t.textPrimary, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{me.about}</div> : null}
+      {me.about && !editing ? (
+        <div style={{ marginTop: 12, fontSize: 14, color: t.textPrimary, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+          {me.about}
+        </div>
+      ) : null}
       {editing ? (
         <div style={{ marginTop: 14 }}>
           <TextInput t={t} id="p-name" label="GÖRÜNEN AD" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} />
-          <TextInput t={t} id="p-about" label="HAKKINDA" multiline maxLength={140} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="Kendinden kısaca bahset" />
+          <TextInput
+            t={t}
+            id="p-about"
+            label="HAKKINDA"
+            multiline
+            maxLength={140}
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            placeholder="Kendinden kısaca bahset"
+          />
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button t={t} kind="ghost" onClick={() => setEditing(false)}>
               Vazgeç
@@ -165,9 +236,34 @@ function PasswordDialog({ t, onClose, toast }) {
       }
     >
       <div style={{ padding: '14px 18px 4px' }}>
-        <TextInput t={t} id="pw-cur" type="password" label="MEVCUT ŞİFRE" autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} />
-        <TextInput t={t} id="pw-new" type="password" label="YENİ ŞİFRE (EN AZ 8 KARAKTER)" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
-        <TextInput t={t} id="pw-again" type="password" label="YENİ ŞİFRE (TEKRAR)" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} error={error} />
+        <TextInput
+          t={t}
+          id="pw-cur"
+          type="password"
+          label="MEVCUT ŞİFRE"
+          autoComplete="current-password"
+          value={cur}
+          onChange={(e) => setCur(e.target.value)}
+        />
+        <TextInput
+          t={t}
+          id="pw-new"
+          type="password"
+          label="YENİ ŞİFRE (EN AZ 8 KARAKTER)"
+          autoComplete="new-password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+        />
+        <TextInput
+          t={t}
+          id="pw-again"
+          type="password"
+          label="YENİ ŞİFRE (TEKRAR)"
+          autoComplete="new-password"
+          value={again}
+          onChange={(e) => setAgain(e.target.value)}
+          error={error}
+        />
       </div>
     </Modal>
   );
@@ -214,8 +310,23 @@ function DeleteAccountDialog({ t, onClose, onDeleted }) {
           <li>Sohbet listen, istekler, engel listen, ayarların ve bildirim kayıtların</li>
           <li>Gruplardan çıkarılırsın</li>
         </ul>
-        <TextInput t={t} id="del-pw" type="password" label="ŞİFREN" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />
-        <TextInput t={t} id="del-confirm" label='ONAYLAMAK İÇİN "SİL" YAZ' value={confirmText} onChange={(e) => setConfirmText(e.target.value)} error={error} />
+        <TextInput
+          t={t}
+          id="del-pw"
+          type="password"
+          label="ŞİFREN"
+          autoComplete="current-password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+        />
+        <TextInput
+          t={t}
+          id="del-confirm"
+          label='ONAYLAMAK İÇİN "SİL" YAZ'
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          error={error}
+        />
       </div>
     </Modal>
   );
@@ -229,8 +340,29 @@ function BlockedList({ t, uid, toast }) {
   return ids.map((id) => (
     <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0' }}>
       <Avatar name={profiles[id]?.name} uid={id} color={profiles[id]?.color} photoURL={profiles[id]?.photoURL} size={36} />
-      <span style={{ flex: 1, fontSize: 14.5, color: t.textPrimary, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profiles[id]?.name || 'Kullanıcı'}</span>
-      <Button t={t} kind="outline" style={{ height: 32, fontSize: 12.5 }} onClick={() => setBlocked(uid, id, false).then(() => toast('Engel kaldırıldı')).catch((err) => toast(friendlyError(err, 'engel'), 'no'))}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: 14.5,
+          color: t.textPrimary,
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {profiles[id]?.name || 'Kullanıcı'}
+      </span>
+      <Button
+        t={t}
+        kind="outline"
+        style={{ height: 32, fontSize: 12.5 }}
+        onClick={() =>
+          setBlocked(uid, id, false)
+            .then(() => toast('Engel kaldırıldı'))
+            .catch((err) => toast(friendlyError(err, 'engel'), 'no'))
+        }
+      >
         Engeli kaldır
       </Button>
     </div>
@@ -245,7 +377,22 @@ export default function Settings({ t, me, email, theme, onBack, onLogout, onAcco
   const choice = (value, label) => {
     const active = theme.pref === value;
     return (
-      <button type="button" onClick={() => theme.setPref(value)} className="cx-tap" aria-pressed={active} style={{ flex: 1, height: 38, borderRadius: 10, border: 'none', fontWeight: 700, fontSize: 13.5, background: active ? t.accent : t.surface, color: active ? '#fff' : t.textSecondary }}>
+      <button
+        type="button"
+        onClick={() => theme.setPref(value)}
+        className="cx-tap"
+        aria-pressed={active}
+        style={{
+          flex: 1,
+          height: 38,
+          borderRadius: 10,
+          border: 'none',
+          fontWeight: 700,
+          fontSize: 13.5,
+          background: active ? t.accent : t.surface,
+          color: active ? '#fff' : t.textSecondary,
+        }}
+      >
         {label}
       </button>
     );
@@ -253,7 +400,20 @@ export default function Settings({ t, me, email, theme, onBack, onLogout, onAcco
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: t.canvas }}>
-      <div style={{ minHeight: 62, paddingTop: 'env(safe-area-inset-top)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 12, background: t.appbarBg, color: t.appbarText }}>
+      <div
+        style={{
+          minHeight: 62,
+          paddingTop: 'env(safe-area-inset-top)',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          paddingLeft: 8,
+          paddingRight: 12,
+          background: t.appbarBg,
+          color: t.appbarText,
+        }}
+      >
         <IconButton label="Geri" icon="back" onClick={onBack} />
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Ayarlar</h2>
       </div>
@@ -263,12 +423,24 @@ export default function Settings({ t, me, email, theme, onBack, onLogout, onAcco
         <Card t={t} title="BİLDİRİMLER" icon="bell">
           <NotificationSettings t={t} uid={me.uid} toast={toast} />
           <div style={{ borderTop: `1px solid ${t.divider}`, marginTop: 12, paddingTop: 4 }}>
-            <Toggle t={t} checked={settings.notifPreview !== false} onChange={set('notifPreview')} label="Bildirimde mesaj içeriğini göster" description='Kapalıysa bildirimde yalnızca "Yeni mesaj" yazar.' />
+            <Toggle
+              t={t}
+              checked={settings.notifPreview !== false}
+              onChange={set('notifPreview')}
+              label="Bildirimde mesaj içeriğini göster"
+              description='Kapalıysa bildirimde yalnızca "Yeni mesaj" yazar.'
+            />
           </div>
         </Card>
 
         <Card t={t} title="GİZLİLİK" icon="eye">
-          <Toggle t={t} checked={settings.showLastSeen !== false} onChange={set('showLastSeen')} label="Son görülmemi göster" description="Kapatırsan başkalarının son görülme bilgisini de göremezsin." />
+          <Toggle
+            t={t}
+            checked={settings.showLastSeen !== false}
+            onChange={set('showLastSeen')}
+            label="Son görülmemi göster"
+            description="Kapatırsan başkalarının son görülme bilgisini de göremezsin."
+          />
           <Toggle t={t} checked={settings.showOnline !== false} onChange={set('showOnline')} label="Çevrimiçi olduğumu göster" />
           <div style={{ borderTop: `1px solid ${t.divider}`, marginTop: 8, paddingTop: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: t.textSecondary, letterSpacing: 0.4, marginBottom: 4 }}>ENGELLENENLER</div>
@@ -302,12 +474,24 @@ export default function Settings({ t, me, email, theme, onBack, onLogout, onAcco
         </Card>
 
         <Card t={t} title="YASAL" icon="doc">
-          <RowButton t={t} icon="doc" label="Gizlilik politikası" onClick={() => window.open(`${BASE}gizlilik.html`, '_blank', 'noopener')} />
-          <RowButton t={t} icon="doc" label="Kullanım koşulları" onClick={() => window.open(`${BASE}kosullar.html`, '_blank', 'noopener')} />
+          <RowButton
+            t={t}
+            icon="doc"
+            label="Gizlilik politikası"
+            onClick={() => window.open(`${BASE}gizlilik.html`, '_blank', 'noopener')}
+          />
+          <RowButton
+            t={t}
+            icon="doc"
+            label="Kullanım koşulları"
+            onClick={() => window.open(`${BASE}kosullar.html`, '_blank', 'noopener')}
+          />
           <RowButton t={t} icon="doc" label="KVKK aydınlatma metni" onClick={() => window.open(`${BASE}kvkk.html`, '_blank', 'noopener')} />
         </Card>
 
-        <div style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 700, color: t.accent, marginTop: 16 }}>Geliştiren: Ömer İlerisoy</div>
+        <div style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 700, color: t.accentText, marginTop: 16 }}>
+          Geliştiren: Ömer İlerisoy
+        </div>
       </div>
       {dialog === 'password' ? <PasswordDialog t={t} onClose={() => setDialog(null)} toast={toast} /> : null}
       {dialog === 'delete' ? <DeleteAccountDialog t={t} onClose={() => setDialog(null)} onDeleted={onAccountDeleted} /> : null}

@@ -44,7 +44,9 @@ export function DialogHost({ t }) {
         </>
       }
     >
-      <div style={{ padding: '16px 18px', fontSize: 14.5, lineHeight: 1.55, color: t.textPrimary, whiteSpace: 'pre-line' }}>{current.text}</div>
+      <div style={{ padding: '16px 18px', fontSize: 14.5, lineHeight: 1.55, color: t.textPrimary, whiteSpace: 'pre-line' }}>
+        {current.text}
+      </div>
     </Modal>
   );
 }

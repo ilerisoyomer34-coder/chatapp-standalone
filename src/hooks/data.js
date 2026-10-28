@@ -6,6 +6,9 @@ import { equalTo, limitToLast, onValue, orderByChild, query, ref } from 'firebas
 import { db } from '../firebase.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 
+// Değer yokken her çizimde yeni {} oluşmasın (useMemo bağımlılıkları sabit kalsın).
+export const EMPTY = Object.freeze({});
+
 export function useDbValue(path, { enabled = true, onError, cache = false } = {}) {
   const [state, setState] = useState({ value: undefined, loading: true });
   const errRef = useRef(onError);
@@ -78,7 +81,13 @@ function makeNodeCache(prefix) {
     };
   }
   return function useNodes(ids) {
-    const key = useMemo(() => Array.from(new Set((ids || []).filter(Boolean))).sort().join(','), [ids]);
+    const key = useMemo(
+      () =>
+        Array.from(new Set((ids || []).filter(Boolean)))
+          .sort()
+          .join(','),
+      [ids]
+    );
     const [, force] = useState(0);
     useEffect(() => {
       if (!key) return undefined;
@@ -151,7 +160,8 @@ export function useMessages(chatId, limit = 50) {
     let live = false;
     setState((s) => (s.chatId === chatId ? { ...s, loading: true } : { chatId, list: [], loading: true }));
     cacheGet(`m:${chatId}`).then((cached) => {
-      if (!live && Array.isArray(cached)) setState((s) => (s.chatId === chatId && !s.list.length ? { chatId, list: cached, loading: false, fromCache: true } : s));
+      if (!live && Array.isArray(cached))
+        setState((s) => (s.chatId === chatId && !s.list.length ? { chatId, list: cached, loading: false, fromCache: true } : s));
     });
     const q = query(ref(db, `messages/${chatId}`), orderByChild('ts'), limitToLast(limit));
     return onValue(

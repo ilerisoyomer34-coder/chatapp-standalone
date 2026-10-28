@@ -1,7 +1,8 @@
 // Sesli mesaj kaydı (MediaRecorder). Safari audio/mp4, diğerleri audio/webm (Opus) üretir.
 const CANDIDATES = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'];
 
-export const canRecord = () => typeof window !== 'undefined' && !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+export const canRecord = () =>
+  typeof window !== 'undefined' && !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
 function pickMime() {
   if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';

@@ -1,7 +1,7 @@
 import { Fragment, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onDisconnect, ref, set } from 'firebase/database';
 import { db } from '../../firebase.js';
-import { useDbValue, useMessages, usePresence, useProfiles } from '../../hooks/data.js';
+import { EMPTY, useDbValue, useMessages, usePresence, useProfiles } from '../../hooks/data.js';
 import {
   canEdit,
   deleteForEveryone,
@@ -35,7 +35,20 @@ const GroupInfo = lazy(() => import('../GroupInfo.jsx'));
 const TYPING_IDLE_MS = 4000;
 const PAGE = 50;
 
-export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, desktop, onBack, toast, forwardTargets, onOpenChat, onMute }) {
+export default function ChatView({
+  t,
+  me,
+  chatId,
+  chat,
+  userChat,
+  blockedByMe,
+  desktop,
+  onBack,
+  toast,
+  forwardTargets,
+  onOpenChat,
+  onMute,
+}) {
   const myUid = me.uid;
   const isGroup = chat?.type === 'group';
   const memberIds = useMemo(() => {
@@ -49,9 +62,9 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
 
   const [limit, setLimit] = useState(PAGE);
   const { list, loading, hasMore } = useMessages(amMember ? chatId : null, limit);
-  const hidden = useDbValue(`hidden/${myUid}/${chatId}`).value || {};
-  const receipts = useDbValue(amMember ? `receipts/${chatId}` : null).value || {};
-  const typingNode = useDbValue(amMember ? `typing/${chatId}` : null).value || {};
+  const hidden = useDbValue(`hidden/${myUid}/${chatId}`).value || EMPTY;
+  const receipts = useDbValue(amMember ? `receipts/${chatId}` : null).value || EMPTY;
+  const typingNode = useDbValue(amMember ? `typing/${chatId}` : null).value || EMPTY;
   const presence = usePresence(otherUid);
 
   const messages = useMemo(() => list.filter((m) => !hidden[m.id]), [list, hidden]);
@@ -99,7 +112,9 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
       if (!typingRef.current.active) {
         typingRef.current.active = true;
         const r = ref(db, typingPath);
-        onDisconnect(r).remove().catch(() => {});
+        onDisconnect(r)
+          .remove()
+          .catch(() => {});
         set(r, true).catch(() => {});
       }
       typingRef.current.timer = setTimeout(stopTyping, TYPING_IDLE_MS);
@@ -119,7 +134,12 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
   // ── okundu bilgisi ──
   const others = memberIds.filter((u) => u !== myUid);
   const myRead = Number(receipts[myUid]?.read) || 0;
-  const minOf = (field) => (others.length ? Math.min(...others.map((u) => Math.max(Number(receipts[u]?.[field]) || 0, field === 'delivered' ? Number(receipts[u]?.read) || 0 : 0))) : 0);
+  const minOf = (field) =>
+    others.length
+      ? Math.min(
+          ...others.map((u) => Math.max(Number(receipts[u]?.[field]) || 0, field === 'delivered' ? Number(receipts[u]?.read) || 0 : 0))
+        )
+      : 0;
   const othersRead = minOf('read');
   const othersDelivered = minOf('delivered');
   const lastIncomingTs = useMemo(() => {
@@ -291,7 +311,9 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
   const doDelete = async (msg) => {
     const mine = msg.from === myUid && !msg.deleted;
     if (!mine) {
-      if (await confirmDialog({ title: 'Mesaj silinsin mi?', text: 'Mesaj yalnızca senden silinir.', okText: 'Benden sil', danger: true })) {
+      if (
+        await confirmDialog({ title: 'Mesaj silinsin mi?', text: 'Mesaj yalnızca senden silinir.', okText: 'Benden sil', danger: true })
+      ) {
         deleteForMe(myUid, chatId, [msg.id]).catch((err) => toast(friendlyError(err, 'silme'), 'no'));
       }
       return;
@@ -302,8 +324,17 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
   const menuItems = (msg) => {
     if (msg._deleteChoice) {
       return [
-        { label: 'Herkesten sil', icon: 'trash', danger: true, onClick: () => deleteForEveryone(myUid, chatId, msg, myLast).catch((err) => toast(friendlyError(err, 'silme'), 'no')) },
-        { label: 'Benden sil', icon: 'trash', onClick: () => deleteForMe(myUid, chatId, [msg.id]).catch((err) => toast(friendlyError(err, 'silme'), 'no')) },
+        {
+          label: 'Herkesten sil',
+          icon: 'trash',
+          danger: true,
+          onClick: () => deleteForEveryone(myUid, chatId, msg, myLast).catch((err) => toast(friendlyError(err, 'silme'), 'no')),
+        },
+        {
+          label: 'Benden sil',
+          icon: 'trash',
+          onClick: () => deleteForMe(myUid, chatId, [msg.id]).catch((err) => toast(friendlyError(err, 'silme'), 'no')),
+        },
       ];
     }
     const mine = msg.from === myUid;
@@ -322,7 +353,8 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
     if (canEdit(msg, myUid)) items.push({ label: 'Düzenle', icon: 'edit', hint: '15 dk', onClick: () => setEditing(msg) });
     if (!msg.deleted) items.push({ label: 'İlet', icon: 'forward', onClick: () => setForwarding(msg) });
     items.push({ label: 'Sil', icon: 'trash', danger: true, onClick: () => doDelete(msg) });
-    if (!mine && !msg.deleted) items.push({ label: 'Şikâyet et', icon: 'flag', danger: true, onClick: () => setReporting({ target: msg.from, messageId: msg.id }) });
+    if (!mine && !msg.deleted)
+      items.push({ label: 'Şikâyet et', icon: 'flag', danger: true, onClick: () => setReporting({ target: msg.from, messageId: msg.id }) });
     return items;
   };
 
@@ -342,7 +374,15 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
                 setReaction(myUid, chatId, msg.id, active ? null : e).catch((err) => toast(friendlyError(err, 'tepki'), 'no'));
               }}
               className="cx-tap"
-              style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', fontSize: 25, background: active ? t.surface : 'transparent', boxShadow: active ? `0 0 0 2px ${t.accent}` : 'none' }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                border: 'none',
+                fontSize: 25,
+                background: active ? t.surface : 'transparent',
+                boxShadow: active ? `0 0 0 2px ${t.accent}` : 'none',
+              }}
             >
               {e}
             </button>
@@ -367,9 +407,16 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
   const name = isGroup ? chat?.name || 'Grup' : other === null ? 'Silinmiş hesap' : other?.name || '…';
   let subtitle = '';
   if (typingOthers.length) {
-    subtitle = isGroup ? (typingOthers.length === 1 ? `${profiles[typingOthers[0]]?.name || 'Biri'} yazıyor…` : `${typingOthers.length} kişi yazıyor…`) : 'yazıyor…';
+    subtitle = isGroup
+      ? typingOthers.length === 1
+        ? `${profiles[typingOthers[0]]?.name || 'Biri'} yazıyor…`
+        : `${typingOthers.length} kişi yazıyor…`
+      : 'yazıyor…';
   } else if (isGroup) {
-    subtitle = memberIds.map((u) => (u === myUid ? 'Sen' : profiles[u]?.name)).filter(Boolean).join(', ');
+    subtitle = memberIds
+      .map((u) => (u === myUid ? 'Sen' : profiles[u]?.name))
+      .filter(Boolean)
+      .join(', ');
   } else if (presence.online) subtitle = 'çevrimiçi';
   else if (presence.lastSeen) subtitle = formatLastSeen(presence.lastSeen);
   else if (other?.username) subtitle = `@${other.username}`;
@@ -379,19 +426,32 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
     ? [
         { label: 'Grup bilgisi', icon: 'users', onClick: () => setGroupInfoOpen(true) },
         { label: 'Sohbette ara', icon: 'search', onClick: () => setSearch({ open: true, q: '', idx: 0 }) },
-        muted ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(chatId, null) } : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteMenu(true) },
+        muted
+          ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(chatId, null) }
+          : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteMenu(true) },
       ]
     : [
         { label: 'Kişi bilgisi', icon: 'user', onClick: () => setProfileOpen(true) },
         { label: 'Sohbette ara', icon: 'search', onClick: () => setSearch({ open: true, q: '', idx: 0 }) },
-        muted ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(chatId, null) } : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteMenu(true) },
+        muted
+          ? { label: 'Sesi aç', icon: 'bell', onClick: () => onMute(chatId, null) }
+          : { label: 'Sessize al', icon: 'bellOff', onClick: () => setMuteMenu(true) },
         otherUid
           ? {
               label: blockedByMe ? 'Engeli kaldır' : 'Engelle',
               icon: 'slash',
               danger: !blockedByMe,
               onClick: async () => {
-                if (!blockedByMe && !(await confirmDialog({ title: `${name} engellensin mi?`, text: 'Engellenen kişi sana mesaj ve istek gönderemez, bildirim almazsın.', okText: 'Engelle', danger: true }))) return;
+                if (
+                  !blockedByMe &&
+                  !(await confirmDialog({
+                    title: `${name} engellensin mi?`,
+                    text: 'Engellenen kişi sana mesaj ve istek gönderemez, bildirim almazsın.',
+                    okText: 'Engelle',
+                    danger: true,
+                  }))
+                )
+                  return;
                 setBlocked(myUid, otherUid, !blockedByMe)
                   .then(() => toast(blockedByMe ? 'Engel kaldırıldı' : 'Engellendi'))
                   .catch((err) => toast(friendlyError(err, 'engelleme'), 'no'));
@@ -410,9 +470,25 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
   const replyName = replyTo ? (replyTo.from === myUid ? 'Sen' : profiles[replyTo.from]?.name || 'Kullanıcı') : '';
 
   return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%', background: t.chatBg, position: 'relative' }}>
+    <div
+      style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%', background: t.chatBg, position: 'relative' }}
+    >
       {/* başlık */}
-      <div style={{ minHeight: 62, paddingTop: 'env(safe-area-inset-top)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: desktop ? 14 : 6, paddingRight: 6, background: t.appbarBg, color: t.appbarText, zIndex: 3 }}>
+      <div
+        style={{
+          minHeight: 62,
+          paddingTop: 'env(safe-area-inset-top)',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          paddingLeft: desktop ? 14 : 6,
+          paddingRight: 6,
+          background: t.appbarBg,
+          color: t.appbarText,
+          zIndex: 3,
+        }}
+      >
         {!desktop ? <IconButton label="Geri" icon="back" onClick={onBack} size={38} iconSize={23} /> : null}
         {search.open ? (
           <>
@@ -423,20 +499,85 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
               onKeyDown={(e) => e.key === 'Escape' && setSearch({ open: false, q: '', idx: 0 })}
               placeholder="Sohbette ara…"
               aria-label="Sohbette ara"
-              style={{ flex: 1, minWidth: 0, height: 38, borderRadius: 10, border: 'none', padding: '0 12px', fontSize: 15, background: 'rgba(255,255,255,.16)', color: 'inherit', outline: 'none' }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: 38,
+                borderRadius: 10,
+                border: 'none',
+                padding: '0 12px',
+                fontSize: 15,
+                background: 'rgba(255,255,255,.16)',
+                color: 'inherit',
+                outline: 'none',
+              }}
             />
-            <span style={{ fontSize: 12.5, opacity: 0.85, minWidth: 44, textAlign: 'center' }}>{term ? `${matches.length ? Math.min(search.idx, matches.length - 1) + 1 : 0}/${matches.length}` : ''}</span>
-            <IconButton label="Önceki" icon="chevronUp" onClick={() => setSearch((s) => ({ ...s, idx: s.idx > 0 ? s.idx - 1 : Math.max(0, matches.length - 1) }))} size={36} />
-            <IconButton label="Sonraki" icon="chevronDown" onClick={() => setSearch((s) => ({ ...s, idx: matches.length ? (s.idx + 1) % matches.length : 0 }))} size={36} />
+            <span style={{ fontSize: 12.5, opacity: 0.85, minWidth: 44, textAlign: 'center' }}>
+              {term ? `${matches.length ? Math.min(search.idx, matches.length - 1) + 1 : 0}/${matches.length}` : ''}
+            </span>
+            <IconButton
+              label="Önceki"
+              icon="chevronUp"
+              onClick={() => setSearch((s) => ({ ...s, idx: s.idx > 0 ? s.idx - 1 : Math.max(0, matches.length - 1) }))}
+              size={36}
+            />
+            <IconButton
+              label="Sonraki"
+              icon="chevronDown"
+              onClick={() => setSearch((s) => ({ ...s, idx: matches.length ? (s.idx + 1) % matches.length : 0 }))}
+              size={36}
+            />
             <IconButton label="Aramayı kapat" icon="x" onClick={() => setSearch({ open: false, q: '', idx: 0 })} size={36} />
           </>
         ) : (
           <>
-            <button type="button" onClick={() => (isGroup ? setGroupInfoOpen(true) : setProfileOpen(true))} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'none', color: 'inherit', textAlign: 'left', padding: 0 }}>
-              <Avatar name={name} uid={isGroup ? chatId : otherUid} color={isGroup ? undefined : other?.color} photoURL={isGroup ? chat?.photoURL : other?.photoURL} size={42} />
+            <button
+              type="button"
+              onClick={() => (isGroup ? setGroupInfoOpen(true) : setProfileOpen(true))}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                border: 'none',
+                background: 'none',
+                color: 'inherit',
+                textAlign: 'left',
+                padding: 0,
+              }}
+            >
+              <Avatar
+                name={name}
+                uid={isGroup ? chatId : otherUid}
+                color={isGroup ? undefined : other?.color}
+                photoURL={isGroup ? chat?.photoURL : other?.photoURL}
+                size={42}
+              />
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                <span aria-live="polite" style={{ display: 'block', fontSize: 12, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 15.5,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {name}
+                </span>
+                <span
+                  aria-live="polite"
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    opacity: 0.85,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {subtitle}
                 </span>
               </span>
@@ -448,17 +589,57 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
       </div>
 
       {/* mesajlar */}
-      <div ref={scrollerRef} onScroll={onScroll} className="cx-scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px clamp(12px,7%,90px)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        className="cx-scroll"
+        style={{ flex: 1, overflowY: 'auto', padding: '14px clamp(12px,7%,90px)', display: 'flex', flexDirection: 'column', gap: 4 }}
+      >
         {!hasMore || !amMember ? (
-          <div style={{ alignSelf: 'center', background: t.infoPill, color: t.infoPillText, padding: '8px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, margin: '6px 0 14px', display: 'flex', alignItems: 'center', gap: 8, textAlign: 'center', maxWidth: 340, lineHeight: 1.45, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
+          <div
+            style={{
+              alignSelf: 'center',
+              background: t.infoPill,
+              color: t.infoPillText,
+              padding: '8px 16px',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 600,
+              margin: '6px 0 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              textAlign: 'center',
+              maxWidth: 340,
+              lineHeight: 1.45,
+              boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+            }}
+          >
             <Icon name="lock" size={16} />
             Bağlantın şifreli (HTTPS).
           </div>
         ) : (
-          <div style={{ alignSelf: 'center', padding: 10, color: t.textSecondary, fontSize: 12.5 }}>{loading ? <span className="cx-spinner" aria-label="Eski mesajlar yükleniyor" /> : 'Eski mesajlar için yukarı kaydır'}</div>
+          <div style={{ alignSelf: 'center', padding: 10, color: t.textSecondary, fontSize: 12.5 }}>
+            {loading ? <span className="cx-spinner" aria-label="Eski mesajlar yükleniyor" /> : 'Eski mesajlar için yukarı kaydır'}
+          </div>
         )}
         {term && hasMore ? (
-          <button type="button" onClick={() => setLimit((l) => l + 200)} className="cx-tap" style={{ alignSelf: 'center', border: 'none', borderRadius: 14, padding: '6px 14px', background: t.bg, color: t.accent, fontWeight: 700, fontSize: 12.5, marginBottom: 8 }}>
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + 200)}
+            className="cx-tap"
+            style={{
+              alignSelf: 'center',
+              border: 'none',
+              borderRadius: 14,
+              padding: '6px 14px',
+              background: t.bg,
+              color: t.accentText,
+              fontWeight: 700,
+              fontSize: 12.5,
+              marginBottom: 8,
+            }}
+          >
             Daha eski mesajlarda da ara
           </button>
         ) : null}
@@ -468,7 +649,19 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
           </div>
         ) : null}
         {!loading && amMember && messages.length === 0 && !uploads.length ? (
-          <div style={{ alignSelf: 'center', background: t.systemPill, color: t.textSecondary, padding: '6px 14px', borderRadius: 13, fontSize: 12.5, fontWeight: 500 }}>Sohbet başladı. İlk mesajı sen yaz 👋</div>
+          <div
+            style={{
+              alignSelf: 'center',
+              background: t.systemPill,
+              color: t.textSecondary,
+              padding: '6px 14px',
+              borderRadius: 13,
+              fontSize: 12.5,
+              fontWeight: 500,
+            }}
+          >
+            Sohbet başladı. İlk mesajı sen yaz 👋
+          </div>
         ) : null}
         {messages.map((m, i) => {
           const prev = messages[i - 1];
@@ -479,7 +672,21 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
           return (
             <Fragment key={m.id}>
               {newDay ? (
-                <div style={{ alignSelf: 'center', background: t.systemPill, color: t.textSecondary, padding: '5px 12px', borderRadius: 9, fontSize: 12, fontWeight: 600, margin: '8px 0', boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>{formatDaySeparator(ts)}</div>
+                <div
+                  style={{
+                    alignSelf: 'center',
+                    background: t.systemPill,
+                    color: t.textSecondary,
+                    padding: '5px 12px',
+                    borderRadius: 9,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    margin: '8px 0',
+                    boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+                  }}
+                >
+                  {formatDaySeparator(ts)}
+                </div>
               ) : null}
               <MessageBubble
                 t={t}
@@ -503,24 +710,67 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
           );
         })}
         {uploads.map((u) => (
-          <div key={u.id} style={{ alignSelf: 'flex-end', maxWidth: '80%', background: t.bubbleSent, color: t.bubbleText, borderRadius: '12px 12px 4px 12px', padding: '8px 10px', boxShadow: '0 1px 1.5px rgba(0,0,0,.13)', minWidth: 220 }}>
+          <div
+            key={u.id}
+            style={{
+              alignSelf: 'flex-end',
+              maxWidth: '80%',
+              background: t.bubbleSent,
+              color: t.bubbleText,
+              borderRadius: '12px 12px 4px 12px',
+              padding: '8px 10px',
+              boxShadow: '0 1px 1.5px rgba(0,0,0,.13)',
+              minWidth: 220,
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Icon name={(u.type || '').startsWith('audio/') ? 'mic' : (u.type || '').startsWith('image/') ? 'image' : 'file'} size={22} color={t.accent} />
+              <Icon
+                name={(u.type || '').startsWith('audio/') ? 'mic' : (u.type || '').startsWith('image/') ? 'image' : 'file'}
+                size={22}
+                color={t.accent}
+              />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(u.type || '').startsWith('audio/') ? 'Sesli mesaj' : u.name}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {(u.type || '').startsWith('audio/') ? 'Sesli mesaj' : u.name}
+                </div>
                 <div style={{ fontSize: 11.5, color: t.timeColor }}>
                   {Math.round(u.progress * 100)}% · {formatSize(u.size)}
                 </div>
               </div>
-              <IconButton label="Yüklemeyi iptal et" icon="x" onClick={() => u.handle.cancel()} size={30} iconSize={16} color={t.textSecondary} />
+              <IconButton
+                label="Yüklemeyi iptal et"
+                icon="x"
+                onClick={() => u.handle.cancel()}
+                size={30}
+                iconSize={16}
+                color={t.textSecondary}
+              />
             </div>
-            <div style={{ height: 4, borderRadius: 2, background: 'rgba(128,128,128,.25)', marginTop: 8, overflow: 'hidden' }} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(u.progress * 100)}>
+            <div
+              style={{ height: 4, borderRadius: 2, background: 'rgba(128,128,128,.25)', marginTop: 8, overflow: 'hidden' }}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(u.progress * 100)}
+            >
               <div style={{ height: '100%', width: `${Math.max(3, u.progress * 100)}%`, background: t.accent, transition: 'width .2s' }} />
             </div>
           </div>
         ))}
         {typingOthers.length ? (
-          <div aria-label="Yazıyor" style={{ alignSelf: 'flex-start', background: t.bubbleRecv, padding: '12px 15px', borderRadius: '12px 12px 12px 4px', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 1px 1.5px rgba(0,0,0,.13)' }}>
+          <div
+            aria-label="Yazıyor"
+            style={{
+              alignSelf: 'flex-start',
+              background: t.bubbleRecv,
+              padding: '12px 15px',
+              borderRadius: '12px 12px 12px 4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              boxShadow: '0 1px 1.5px rgba(0,0,0,.13)',
+            }}
+          >
             <span className="cx-typing-dot" />
             <span className="cx-typing-dot" />
             <span className="cx-typing-dot" />
@@ -533,16 +783,49 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
           type="button"
           onClick={() => scrollToBottom(true)}
           className="cx-tap"
-          style={{ position: 'absolute', right: 18, bottom: 92, zIndex: 4, border: 'none', borderRadius: 18, background: t.accent, color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: 13, boxShadow: '0 6px 18px rgba(0,0,0,.25)', display: 'flex', alignItems: 'center', gap: 6 }}
+          style={{
+            position: 'absolute',
+            right: 18,
+            bottom: 92,
+            zIndex: 4,
+            border: 'none',
+            borderRadius: 18,
+            background: t.accent,
+            color: '#fff',
+            padding: '8px 14px',
+            fontWeight: 700,
+            fontSize: 13,
+            boxShadow: '0 6px 18px rgba(0,0,0,.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
         >
           Yeni mesaj <Icon name="arrowDown" size={15} />
         </button>
       ) : null}
 
       {blockedByMe && !disabledNotice ? (
-        <div style={{ padding: '12px 18px calc(12px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', background: t.bg, color: t.textSecondary, fontSize: 13.5, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            padding: '12px 18px calc(12px + env(safe-area-inset-bottom))',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            justifyContent: 'center',
+            background: t.bg,
+            color: t.textSecondary,
+            fontSize: 13.5,
+            flexWrap: 'wrap',
+          }}
+        >
           Bu kişiyi engelledin.
-          <button type="button" onClick={() => setBlocked(myUid, otherUid, false).catch((err) => toast(friendlyError(err, 'engel'), 'no'))} className="cx-tap" style={{ border: 'none', borderRadius: 10, padding: '7px 14px', background: t.accent, color: '#fff', fontWeight: 700 }}>
+          <button
+            type="button"
+            onClick={() => setBlocked(myUid, otherUid, false).catch((err) => toast(friendlyError(err, 'engel'), 'no'))}
+            className="cx-tap"
+            style={{ border: 'none', borderRadius: 10, padding: '7px 14px', background: t.accent, color: '#fff', fontWeight: 700 }}
+          >
             Engeli kaldır
           </button>
         </div>
@@ -572,9 +855,24 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
         />
       )}
 
-      {menuFor ? <ActionSheet t={t} title={menuFor._deleteChoice ? 'Mesaj silinsin mi?' : undefined} header={reactionRow(menuFor)} items={menuItems(menuFor)} onClose={() => setMenuFor(null)} /> : null}
+      {menuFor ? (
+        <ActionSheet
+          t={t}
+          title={menuFor._deleteChoice ? 'Mesaj silinsin mi?' : undefined}
+          header={reactionRow(menuFor)}
+          items={menuItems(menuFor)}
+          onClose={() => setMenuFor(null)}
+        />
+      ) : null}
       {headerMenu ? <ActionSheet t={t} items={headerItems} onClose={() => setHeaderMenu(false)} /> : null}
-      {muteMenu ? <ActionSheet t={t} title="Bildirimleri sessize al" items={muteItems((until) => onMute(chatId, until))} onClose={() => setMuteMenu(false)} /> : null}
+      {muteMenu ? (
+        <ActionSheet
+          t={t}
+          title="Bildirimleri sessize al"
+          items={muteItems((until) => onMute(chatId, until))}
+          onClose={() => setMuteMenu(false)}
+        />
+      ) : null}
       <Suspense fallback={null}>
         {viewer ? <ImageViewer attachment={viewer} onClose={() => setViewer(null)} /> : null}
         {forwarding ? (
@@ -593,9 +891,33 @@ export default function ChatView({ t, me, chatId, chat, userChat, blockedByMe, d
             toast={toast}
           />
         ) : null}
-        {reporting ? <ReportDialog t={t} me={me} chatId={chatId} {...reporting} targetName={profiles[reporting.target]?.name} onClose={() => setReporting(null)} toast={toast} /> : null}
-        {profileOpen && otherUid ? <ProfileSheet t={t} uid={otherUid} profile={other} presence={presence} onClose={() => setProfileOpen(false)} /> : null}
-        {groupInfoOpen && isGroup ? <GroupInfo t={t} me={me} chatId={chatId} chat={chat} profiles={profiles} contacts={forwardTargets.filter((x) => x.type === 'direct')} onClose={() => setGroupInfoOpen(false)} toast={toast} onLeft={onBack} /> : null}
+        {reporting ? (
+          <ReportDialog
+            t={t}
+            me={me}
+            chatId={chatId}
+            {...reporting}
+            targetName={profiles[reporting.target]?.name}
+            onClose={() => setReporting(null)}
+            toast={toast}
+          />
+        ) : null}
+        {profileOpen && otherUid ? (
+          <ProfileSheet t={t} uid={otherUid} profile={other} presence={presence} onClose={() => setProfileOpen(false)} />
+        ) : null}
+        {groupInfoOpen && isGroup ? (
+          <GroupInfo
+            t={t}
+            me={me}
+            chatId={chatId}
+            chat={chat}
+            profiles={profiles}
+            contacts={forwardTargets.filter((x) => x.type === 'direct')}
+            onClose={() => setGroupInfoOpen(false)}
+            toast={toast}
+            onLeft={onBack}
+          />
+        ) : null}
       </Suspense>
     </div>
   );

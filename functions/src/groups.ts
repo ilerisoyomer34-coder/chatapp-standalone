@@ -57,10 +57,7 @@ function assertAdmin(g: GroupNode, uid: string) {
 // Yalnızca bire bir sohbet ettiğin (isteği kabul edilmiş) kişileri gruba ekleyebilirsin.
 async function assertContacts(db: Database, actor: string, uids: string[]) {
   for (const u of uids) {
-    const [chat, disabled] = await Promise.all([
-      db.ref(`chats/${chatIdFor(actor, u)}/type`).get(),
-      db.ref(`users/${u}/disabled`).get(),
-    ]);
+    const [chat, disabled] = await Promise.all([db.ref(`chats/${chatIdFor(actor, u)}/type`).get(), db.ref(`users/${u}/disabled`).get()]);
     if (!chat.exists() || disabled.val() === true) {
       throw new HttpsError('failed-precondition', 'Yalnızca sohbet ettiğin kişileri gruba ekleyebilirsin.');
     }
@@ -90,7 +87,8 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
     const name = cleanName(data.name);
     const members = uidList(data.members).filter((u) => u !== actor);
     if (!members.length) throw new HttpsError('invalid-argument', 'Gruba en az bir kişi ekle.');
-    if (members.length + 1 > MAX_GROUP_MEMBERS) throw new HttpsError('invalid-argument', `Bir grupta en fazla ${MAX_GROUP_MEMBERS} kişi olabilir.`);
+    if (members.length + 1 > MAX_GROUP_MEMBERS)
+      throw new HttpsError('invalid-argument', `Bir grupta en fazla ${MAX_GROUP_MEMBERS} kişi olabilir.`);
     await assertContacts(db, actor, members);
     const chatId = db.ref('chats').push().key as string;
     const updates: Updates = {
@@ -104,7 +102,11 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
       },
     };
     const text = `${actorName}, "${name}" grubunu oluşturdu.`;
-    updates[`userChats/${actor}/${chatId}`] = { unread: 0, updatedAt: ServerValue.TIMESTAMP, lastMessage: { text, from: actor, ts: ServerValue.TIMESTAMP, system: true } };
+    updates[`userChats/${actor}/${chatId}`] = {
+      unread: 0,
+      updatedAt: ServerValue.TIMESTAMP,
+      lastMessage: { text, from: actor, ts: ServerValue.TIMESTAMP, system: true },
+    };
     for (const m of members) updates[`userChats/${m}/${chatId}`] = { unread: 0, updatedAt: ServerValue.TIMESTAMP };
     systemMessage(db, updates, chatId, actor, 'created', text);
     await db.ref().update(updates);
@@ -141,7 +143,12 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
     Object.assign(updates, membershipRemoval(chatId, actor));
     if (!remaining.length) {
       // Son üye ayrıldı: grubu tamamen sil.
-      Object.assign(updates, { [`chats/${chatId}`]: null, [`messages/${chatId}`]: null, [`typing/${chatId}`]: null, [`receipts/${chatId}`]: null });
+      Object.assign(updates, {
+        [`chats/${chatId}`]: null,
+        [`messages/${chatId}`]: null,
+        [`typing/${chatId}`]: null,
+        [`receipts/${chatId}`]: null,
+      });
       await db.ref().update(normalizeUpdates(updates));
       return { chatId, deletedGroup: true };
     }
@@ -161,7 +168,16 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
     }
     updates[`chats/${chatId}/admins/${target}`] = makeAdmin ? true : null;
     const targetName = await displayName(db, target);
-    systemMessage(db, updates, chatId, actor, 'admin', makeAdmin ? `${actorName}, ${targetName} adlı üyeyi yönetici yaptı.` : `${actorName}, ${targetName} adlı üyenin yöneticiliğini kaldırdı.`);
+    systemMessage(
+      db,
+      updates,
+      chatId,
+      actor,
+      'admin',
+      makeAdmin
+        ? `${actorName}, ${targetName} adlı üyeyi yönetici yaptı.`
+        : `${actorName}, ${targetName} adlı üyenin yöneticiliğini kaldırdı.`
+    );
   } else if (action === 'update') {
     assertAdmin(group, actor);
     if (data.name !== undefined) {
@@ -175,7 +191,14 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
         throw new HttpsError('invalid-argument', 'Geçersiz fotoğraf.');
       }
       updates[`chats/${chatId}/photoURL`] = url;
-      systemMessage(db, updates, chatId, actor, 'photo', url ? `${actorName}, grup fotoğrafını değiştirdi.` : `${actorName}, grup fotoğrafını kaldırdı.`);
+      systemMessage(
+        db,
+        updates,
+        chatId,
+        actor,
+        'photo',
+        url ? `${actorName}, grup fotoğrafını değiştirdi.` : `${actorName}, grup fotoğrafını kaldırdı.`
+      );
     }
     if (!Object.keys(updates).length) throw new HttpsError('invalid-argument', 'Değişiklik yok.');
   } else {

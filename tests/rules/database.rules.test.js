@@ -2,11 +2,7 @@
 // Çalıştırma: npm run test:rules  (Firebase Emulator gerekir: Java 21+)
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import {
-  assertFails,
-  assertSucceeds,
-  initializeTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/database';
 
@@ -28,28 +24,31 @@ function profile(username, name) {
 
 async function seed() {
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await ctx.database().ref().set({
-      users: {
-        [ALICE]: profile('alice', 'Alice'),
-        [BOB]: profile('bob', 'Bob'),
-        [CAROL]: profile('carol', 'Carol'),
-        [ADMIN]: profile('admin', 'Yönetici'),
-        [MALLORY]: { ...profile('mallory', 'Mallory'), disabled: true },
-      },
-      usernames: { alice: ALICE, bob: BOB, carol: CAROL, admin: ADMIN, mallory: MALLORY },
-      admins: { [ADMIN]: true },
-      requests: {
-        [`${ALICE}_${BOB}`]: { from: ALICE, to: BOB, status: 'accepted', ts: 1700000000000 },
-      },
-      chats: {
-        [AB]: { type: 'direct', members: { [ALICE]: true, [BOB]: true }, createdAt: 1700000000000 },
-      },
-      messages: {
-        [AB]: {
-          m1: { from: ALICE, text: 'Merhaba', ts: 1700000000001 },
+    await ctx
+      .database()
+      .ref()
+      .set({
+        users: {
+          [ALICE]: profile('alice', 'Alice'),
+          [BOB]: profile('bob', 'Bob'),
+          [CAROL]: profile('carol', 'Carol'),
+          [ADMIN]: profile('admin', 'Yönetici'),
+          [MALLORY]: { ...profile('mallory', 'Mallory'), disabled: true },
         },
-      },
-    });
+        usernames: { alice: ALICE, bob: BOB, carol: CAROL, admin: ADMIN, mallory: MALLORY },
+        admins: { [ADMIN]: true },
+        requests: {
+          [`${ALICE}_${BOB}`]: { from: ALICE, to: BOB, status: 'accepted', ts: 1700000000000 },
+        },
+        chats: {
+          [AB]: { type: 'direct', members: { [ALICE]: true, [BOB]: true }, createdAt: 1700000000000 },
+        },
+        messages: {
+          [AB]: {
+            m1: { from: ALICE, text: 'Merhaba', ts: 1700000000001 },
+          },
+        },
+      });
   });
 }
 
@@ -57,10 +56,12 @@ const db = (who) => (who ? env.authenticatedContext(who).database() : env.unauth
 
 // İstek, günlük kota sayacıyla aynı güncellemede yazılmak zorunda.
 const req = (who, from, to, quota = { windowStart: TS, count: 1 }) =>
-  db(who).ref().update({
-    [`requests/${from}_${to}`]: { from, to, status: 'pending', ts: TS },
-    [`requestQuota/${who}`]: quota,
-  });
+  db(who)
+    .ref()
+    .update({
+      [`requests/${from}_${to}`]: { from, to, status: 'pending', ts: TS },
+      [`requestQuota/${who}`]: quota,
+    });
 
 beforeAll(async () => {
   const [host, port] = (process.env.FIREBASE_DATABASE_EMULATOR_HOST || '127.0.0.1:9000').split(':');
@@ -102,9 +103,7 @@ describe('kayıt ve kullanıcı adı', () => {
     const d = db(NEW);
     const res = await d.ref('usernames/yeni_kisi').transaction((cur) => (cur === null ? NEW : undefined));
     if (!res.committed) throw new Error('transaction commit olmadı');
-    await assertSucceeds(
-      d.ref(`users/${NEW}`).set({ username: 'yeni_kisi', name: 'Yeni Kişi', color: '#25D366', createdAt: TS })
-    );
+    await assertSucceeds(d.ref(`users/${NEW}`).set({ username: 'yeni_kisi', name: 'Yeni Kişi', color: '#25D366', createdAt: TS }));
   });
   it('alınmış kullanıcı adının üzerine yazamaz', async () => {
     await assertFails(db(NEW).ref('usernames/alice').set(NEW));
@@ -112,7 +111,11 @@ describe('kayıt ve kullanıcı adı', () => {
   it('geçersiz biçimli kullanıcı adı reddedilir', async () => {
     await assertFails(db(NEW).ref('usernames/Büyük').set(NEW));
     await assertFails(db(NEW).ref('usernames/ab').set(NEW));
-    await assertFails(db(NEW).ref('usernames/' + 'a'.repeat(21)).set(NEW));
+    await assertFails(
+      db(NEW)
+        .ref('usernames/' + 'a'.repeat(21))
+        .set(NEW)
+    );
   });
   it('başkası adına kullanıcı adı alınamaz', async () => {
     await assertFails(db(NEW).ref('usernames/baskasi').set(BOB));
@@ -121,9 +124,7 @@ describe('kayıt ve kullanıcı adı', () => {
     await assertFails(db(ALICE).ref('usernames/alice2').set(ALICE));
   });
   it('profil kullanıcı adı, sahibinin eşlemesi değilse yazılamaz', async () => {
-    await assertFails(
-      db(NEW).ref(`users/${NEW}`).set({ username: 'bob', name: 'Sahte', createdAt: TS })
-    );
+    await assertFails(db(NEW).ref(`users/${NEW}`).set({ username: 'bob', name: 'Sahte', createdAt: TS }));
   });
   it('görünen ad 40 karakteri geçemez', async () => {
     await assertFails(db(ALICE).ref(`users/${ALICE}/name`).set('x'.repeat(41)));
@@ -167,22 +168,14 @@ describe('kullanıcı listesi ve arama', () => {
 
 describe('sohbet istekleri', () => {
   it('kullanıcı kendi adına istek gönderebilir', async () => {
-    await assertSucceeds(
-      req(CAROL, CAROL, ALICE)
-    );
+    await assertSucceeds(req(CAROL, CAROL, ALICE));
   });
   it('başkası adına istek gönderemez', async () => {
-    await assertFails(
-      req(CAROL, BOB, ALICE)
-    );
+    await assertFails(req(CAROL, BOB, ALICE));
   });
   it('kendine veya devre dışı kullanıcıya istek gönderemez', async () => {
-    await assertFails(
-      req(CAROL, CAROL, CAROL)
-    );
-    await assertFails(
-      req(CAROL, CAROL, MALLORY)
-    );
+    await assertFails(req(CAROL, CAROL, CAROL));
+    await assertFails(req(CAROL, CAROL, MALLORY));
   });
   it('istekleri yalnızca kendisine gelen/kendi gönderdiği sorgu ile listeleyebilir', async () => {
     await assertSucceeds(db(BOB).ref('requests').orderByChild('to').equalTo(BOB).get());
@@ -192,9 +185,7 @@ describe('sohbet istekleri', () => {
     await assertFails(db(CAROL).ref(`requests/${ALICE}_${BOB}`).get());
   });
   it('isteği yalnızca alıcı kabul/ret edebilir', async () => {
-    await assertSucceeds(
-      req(CAROL, CAROL, BOB)
-    );
+    await assertSucceeds(req(CAROL, CAROL, BOB));
     await assertFails(db(CAROL).ref(`requests/${CAROL}_${BOB}`).update({ status: 'accepted', respondedAt: TS }));
     await assertSucceeds(db(BOB).ref(`requests/${CAROL}_${BOB}`).update({ status: 'rejected', respondedAt: TS }));
   });
@@ -203,34 +194,36 @@ describe('sohbet istekleri', () => {
     await assertFails(db(ALICE).ref(`requests/${ALICE}_${BOB}/status`).set('pending'));
   });
   it('gönderen bekleyen isteğini geri çekebilir, alıcı silemez', async () => {
-    await assertSucceeds(
-      req(CAROL, CAROL, BOB)
-    );
+    await assertSucceeds(req(CAROL, CAROL, BOB));
     await assertFails(db(BOB).ref(`requests/${CAROL}_${BOB}`).remove());
     await assertSucceeds(db(CAROL).ref(`requests/${CAROL}_${BOB}`).remove());
   });
   it('reddedilen istek 24 saat dolmadan yeniden gönderilemez', async () => {
     const id = `${CAROL}_${BOB}`;
     await env.withSecurityRulesDisabled((ctx) =>
-      ctx.database().ref(`requests/${id}`).set({ from: CAROL, to: BOB, status: 'rejected', ts: Date.now() - 3600000 })
+      ctx
+        .database()
+        .ref(`requests/${id}`)
+        .set({ from: CAROL, to: BOB, status: 'rejected', ts: Date.now() - 3600000 })
     );
     await assertFails(req(CAROL, CAROL, BOB));
-    await env.withSecurityRulesDisabled((ctx) => ctx.database().ref(`requests/${id}/ts`).set(Date.now() - 2 * 86400000));
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx
+        .database()
+        .ref(`requests/${id}/ts`)
+        .set(Date.now() - 2 * 86400000)
+    );
     await assertSucceeds(req(CAROL, CAROL, BOB));
   });
   it('karşı taraf zaten istek göndermişse ters istek gönderilemez', async () => {
     await env.withSecurityRulesDisabled((ctx) =>
       ctx.database().ref(`requests/${BOB}_${CAROL}`).set({ from: BOB, to: CAROL, status: 'pending', ts: 1 })
     );
-    await assertFails(
-      req(CAROL, CAROL, BOB)
-    );
+    await assertFails(req(CAROL, CAROL, BOB));
   });
   it('engellenen kullanıcı istek gönderemez', async () => {
     await assertSucceeds(db(ALICE).ref(`blocks/${ALICE}/${CAROL}`).set(true));
-    await assertFails(
-      req(CAROL, CAROL, ALICE)
-    );
+    await assertFails(req(CAROL, CAROL, ALICE));
   });
 });
 
@@ -238,7 +231,9 @@ describe('sohbet oluşturma', () => {
   it('kabul edilmiş istek olmadan sohbet kurulamaz', async () => {
     const cid = chatIdOf(ALICE, CAROL);
     await assertFails(
-      db(CAROL).ref(`chats/${cid}`).set({ type: 'direct', members: { [ALICE]: true, [CAROL]: true }, createdAt: TS })
+      db(CAROL)
+        .ref(`chats/${cid}`)
+        .set({ type: 'direct', members: { [ALICE]: true, [CAROL]: true }, createdAt: TS })
     );
   });
   it('istek kabulü ile sohbet aynı güncellemede kurulabilir', async () => {
@@ -247,12 +242,14 @@ describe('sohbet oluşturma', () => {
     );
     const cid = chatIdOf(BOB, CAROL);
     await assertSucceeds(
-      db(BOB).ref().update({
-        [`requests/${CAROL}_${BOB}/status`]: 'accepted',
-        [`requests/${CAROL}_${BOB}/respondedAt`]: TS,
-        [`chats/${cid}`]: { type: 'direct', members: { [BOB]: true, [CAROL]: true }, createdAt: TS },
-        [`userChats/${BOB}/${cid}`]: { unread: 0, updatedAt: TS },
-      })
+      db(BOB)
+        .ref()
+        .update({
+          [`requests/${CAROL}_${BOB}/status`]: 'accepted',
+          [`requests/${CAROL}_${BOB}/respondedAt`]: TS,
+          [`chats/${cid}`]: { type: 'direct', members: { [BOB]: true, [CAROL]: true }, createdAt: TS },
+          [`userChats/${BOB}/${cid}`]: { unread: 0, updatedAt: TS },
+        })
     );
   });
   it('sohbete üçüncü kişi eklenemez, var olan sohbet değiştirilemez', async () => {
@@ -275,8 +272,16 @@ describe('mesajlar', () => {
     await assertFails(db(BOB).ref(`messages/${AB}/m2`).set({ from: BOB, text: 'Selam', ts: 123 }));
   });
   it('4000 karakterden uzun mesaj reddedilir', async () => {
-    await assertFails(db(BOB).ref(`messages/${AB}/m2`).set({ from: BOB, text: 'x'.repeat(4001), ts: TS }));
-    await assertSucceeds(db(BOB).ref(`messages/${AB}/m2`).set({ from: BOB, text: 'x'.repeat(4000), ts: TS }));
+    await assertFails(
+      db(BOB)
+        .ref(`messages/${AB}/m2`)
+        .set({ from: BOB, text: 'x'.repeat(4001), ts: TS })
+    );
+    await assertSucceeds(
+      db(BOB)
+        .ref(`messages/${AB}/m2`)
+        .set({ from: BOB, text: 'x'.repeat(4000), ts: TS })
+    );
   });
   it('üye olmayan mesajları okuyamaz ve yazamaz', async () => {
     await assertFails(db(CAROL).ref(`messages/${AB}`).get());
@@ -305,10 +310,26 @@ describe('mesajlar', () => {
   });
   it('ek yalnızca bu mesajın Storage yoluna işaret edebilir; javascript: gibi adresler yazılamaz', async () => {
     const att = (path) => ({ path, name: 'a.pdf', size: 3, type: 'application/pdf' });
-    await assertSucceeds(db(BOB).ref(`messages/${AB}/m3`).set({ from: BOB, ts: TS, attachment: att(`chats/${AB}/m3/a.pdf`) }));
-    await assertFails(db(BOB).ref(`messages/${AB}/m4`).set({ from: BOB, ts: TS, attachment: att(`chats/baska/m4/a.pdf`) }));
-    await assertFails(db(BOB).ref(`messages/${AB}/m5`).set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m5/a.pdf`), url: 'javascript:alert(1)' } }));
-    await assertFails(db(BOB).ref(`messages/${AB}/m6`).set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m6/a.pdf`), size: 26214401 } }));
+    await assertSucceeds(
+      db(BOB)
+        .ref(`messages/${AB}/m3`)
+        .set({ from: BOB, ts: TS, attachment: att(`chats/${AB}/m3/a.pdf`) })
+    );
+    await assertFails(
+      db(BOB)
+        .ref(`messages/${AB}/m4`)
+        .set({ from: BOB, ts: TS, attachment: att(`chats/baska/m4/a.pdf`) })
+    );
+    await assertFails(
+      db(BOB)
+        .ref(`messages/${AB}/m5`)
+        .set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m5/a.pdf`), url: 'javascript:alert(1)' } })
+    );
+    await assertFails(
+      db(BOB)
+        .ref(`messages/${AB}/m6`)
+        .set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m6/a.pdf`), size: 26214401 } })
+    );
     // Eski satır içi base64 ek düğümü artık yok.
     await assertFails(db(BOB).ref(`attachments/${AB}/m3`).set('data:text/plain;base64,YWJj'));
   });
@@ -359,20 +380,25 @@ describe('engelleme, şikâyet ve istek sınırı', () => {
   it('şikâyeti kullanıcı oluşturur, yalnızca yönetici okur/siler', async () => {
     const r = { from: BOB, target: ALICE, chatId: AB, messageId: 'm1', reason: 'Rahatsız edici mesaj', ts: TS };
     await assertSucceeds(db(BOB).ref('reports/r1').set(r));
-    await assertFails(db(BOB).ref('reports/r2').set({ ...r, from: ALICE }));
+    await assertFails(
+      db(BOB)
+        .ref('reports/r2')
+        .set({ ...r, from: ALICE })
+    );
     await assertFails(db(BOB).ref('reports/r1').get());
     await assertFails(db(BOB).ref('reports/r1').remove());
     await assertSucceeds(db(ADMIN).ref('reports').get());
     await assertSucceeds(db(ADMIN).ref('reports/r1').remove());
   });
   it('istek kota sayacı artırılmadan istek gönderilemez', async () => {
-    await assertFails(
-      db(CAROL).ref(`requests/${CAROL}_${ALICE}`).set({ from: CAROL, to: ALICE, status: 'pending', ts: TS })
-    );
+    await assertFails(db(CAROL).ref(`requests/${CAROL}_${ALICE}`).set({ from: CAROL, to: ALICE, status: 'pending', ts: TS }));
   });
   it('günde en fazla 20 istek', async () => {
     await env.withSecurityRulesDisabled((ctx) =>
-      ctx.database().ref(`requestQuota/${CAROL}`).set({ windowStart: Date.now() - 1000, count: 20 })
+      ctx
+        .database()
+        .ref(`requestQuota/${CAROL}`)
+        .set({ windowStart: Date.now() - 1000, count: 20 })
     );
     await assertFails(req(CAROL, CAROL, ALICE, { windowStart: Date.now() - 1000, count: 21 }));
     await assertFails(db(CAROL).ref(`requestQuota/${CAROL}`).set({ windowStart: TS, count: 1 }));
@@ -380,7 +406,10 @@ describe('engelleme, şikâyet ve istek sınırı', () => {
   });
   it('24 saat dolunca kota sıfırlanır', async () => {
     await env.withSecurityRulesDisabled((ctx) =>
-      ctx.database().ref(`requestQuota/${CAROL}`).set({ windowStart: Date.now() - 2 * 86400000, count: 20 })
+      ctx
+        .database()
+        .ref(`requestQuota/${CAROL}`)
+        .set({ windowStart: Date.now() - 2 * 86400000, count: 20 })
     );
     await assertSucceeds(req(CAROL, CAROL, ALICE));
   });
@@ -394,11 +423,14 @@ describe('gizlilik ve ayarlar', () => {
   });
   it('son görülme gizlenince başkası okuyamaz; gizleyen de başkasınınkini göremez', async () => {
     await env.withSecurityRulesDisabled((ctx) =>
-      ctx.database().ref().update({
-        [`presence/${ALICE}`]: { online: true, lastSeen: 1 },
-        [`presence/${BOB}`]: { online: false, lastSeen: 2 },
-        [`settings/${ALICE}/showLastSeen`]: false,
-      })
+      ctx
+        .database()
+        .ref()
+        .update({
+          [`presence/${ALICE}`]: { online: true, lastSeen: 1 },
+          [`presence/${BOB}`]: { online: false, lastSeen: 2 },
+          [`settings/${ALICE}/showLastSeen`]: false,
+        })
     );
     await assertFails(db(BOB).ref(`presence/${ALICE}/lastSeen`).get());
     await assertFails(db(ALICE).ref(`presence/${BOB}/lastSeen`).get());
@@ -421,19 +453,24 @@ describe('gruplar', () => {
   const G = '-Ngrup1';
   beforeEach(async () => {
     await env.withSecurityRulesDisabled((ctx) =>
-      ctx.database().ref(`chats/${G}`).set({
-        type: 'group',
-        name: 'Aile',
-        members: { [ALICE]: true, [BOB]: true, [CAROL]: true },
-        admins: { [ALICE]: true },
-        createdBy: ALICE,
-        createdAt: 1,
-      })
+      ctx
+        .database()
+        .ref(`chats/${G}`)
+        .set({
+          type: 'group',
+          name: 'Aile',
+          members: { [ALICE]: true, [BOB]: true, [CAROL]: true },
+          admins: { [ALICE]: true },
+          createdBy: ALICE,
+          createdAt: 1,
+        })
     );
   });
   it('istemci grup kuramaz (sunucu fonksiyonu kurar)', async () => {
     await assertFails(
-      db(ALICE).ref('chats/-Nyeni').set({ type: 'group', name: 'X', members: { [ALICE]: true }, createdAt: TS })
+      db(ALICE)
+        .ref('chats/-Nyeni')
+        .set({ type: 'group', name: 'X', members: { [ALICE]: true }, createdAt: TS })
     );
   });
   it('yalnızca grup yöneticisi adı değiştirir', async () => {

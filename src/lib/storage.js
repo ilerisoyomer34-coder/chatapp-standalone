@@ -10,6 +10,7 @@ export const MAX_AVATAR = 2 * 1024 * 1024;
 const safeName = (name) =>
   String(name || 'dosya')
     .normalize('NFC')
+    // eslint-disable-next-line no-control-regex -- dosya adındaki denetim karakterleri bilerek temizlenir
     .replace(/[\\/#?[\]*\u0000-\u001f]/g, '_')
     .slice(-120) || 'dosya';
 

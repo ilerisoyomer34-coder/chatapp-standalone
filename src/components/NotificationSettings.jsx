@@ -38,9 +38,15 @@ export function IosInstallGuide({ t }) {
         Bildirim almak için ana ekrana ekle
       </div>
       <ol style={{ margin: 0, paddingLeft: 20 }}>
-        <li>Safari'de alttaki <b>Paylaş</b> düğmesine dokun.</li>
-        <li><b>Ana Ekrana Ekle</b>'yi seç.</li>
-        <li>Uygulamayı <b>ana ekrandaki simgeden</b> aç ve buradan bildirimleri aç.</li>
+        <li>
+          Safari'de alttaki <b>Paylaş</b> düğmesine dokun.
+        </li>
+        <li>
+          <b>Ana Ekrana Ekle</b>'yi seç.
+        </li>
+        <li>
+          Uygulamayı <b>ana ekrandaki simgeden</b> aç ve buradan bildirimleri aç.
+        </li>
       </ol>
       <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 6 }}>iOS 16.4 ve sonrası gerekir.</div>
     </div>
@@ -57,9 +63,17 @@ function BlockedHelp({ t }) {
   return (
     <div style={{ background: t.surface, borderRadius: 12, padding: '12px 14px', fontSize: 13, lineHeight: 1.55, color: t.textPrimary }}>
       <div style={{ fontWeight: 700 }}>Bildirimler engellendi. Açmak için:</div>
-      {row('Android', 'Ana ekrandaki ChatApp simgesine uzun bas → Uygulama bilgisi → Bildirimler → Açık. Chrome sekmesindeysen: adres çubuğundaki ayar simgesi → İzinler → Bildirimler → İzin ver.', isAndroid)}
+      {row(
+        'Android',
+        'Ana ekrandaki ChatApp simgesine uzun bas → Uygulama bilgisi → Bildirimler → Açık. Chrome sekmesindeysen: adres çubuğundaki ayar simgesi → İzinler → Bildirimler → İzin ver.',
+        isAndroid
+      )}
       {row('iOS', 'Ayarlar → Bildirimler → ChatApp → Bildirimlere İzin Ver.', isIOS)}
-      {row('Masaüstü', 'Adres çubuğundaki kilit simgesi → Site ayarları → Bildirimler → İzin ver; sonra sayfayı yenile.', !isIOS && !isAndroid)}
+      {row(
+        'Masaüstü',
+        'Adres çubuğundaki kilit simgesi → Site ayarları → Bildirimler → İzin ver; sonra sayfayı yenile.',
+        !isIOS && !isAndroid
+      )}
     </div>
   );
 }
@@ -88,7 +102,11 @@ function Diagnostics({ t, uid, version }) {
   if (!d) return null;
   const rows = [
     ['Tarayıcı desteği', d.supported && !d.needsInstall, d.needsInstall ? 'Önce ana ekrana ekle' : d.supported ? 'Var' : 'Yok'],
-    ['Bildirim izni', d.permission === 'granted', d.permission === 'granted' ? 'Verildi' : d.permission === 'denied' ? 'Engellendi' : 'Verilmedi'],
+    [
+      'Bildirim izni',
+      d.permission === 'granted',
+      d.permission === 'granted' ? 'Verildi' : d.permission === 'denied' ? 'Engellendi' : 'Verilmedi',
+    ],
     ['Servis çalışanı', d.swActive, d.swActive ? 'Etkin' : 'Etkin değil'],
     ['Bildirim anahtarı (VAPID)', d.vapid, d.vapid ? 'Tanımlı' : 'Eksik — yönetici tanımlamalı'],
     ['Bu cihazın kaydı', d.registered, d.registered ? 'Kayıtlı' : 'Kayıtlı değil'],
@@ -144,11 +162,51 @@ function TestPush({ t, uid, toast }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" onClick={run} disabled={busy} className="cx-tap" style={{ height: 40, padding: '0 14px', borderRadius: 11, border: `1.5px solid ${t.accent}`, background: 'transparent', color: t.accent, fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 7 }}>
-          {busy ? <span className="cx-spinner" aria-hidden="true" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="send" size={16} />}
+        <button
+          type="button"
+          onClick={run}
+          disabled={busy}
+          className="cx-tap"
+          style={{
+            height: 40,
+            padding: '0 14px',
+            borderRadius: 11,
+            border: `1.5px solid ${t.accent}`,
+            background: 'transparent',
+            color: t.accentText,
+            fontWeight: 700,
+            fontSize: 13.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+          }}
+        >
+          {busy ? (
+            <span className="cx-spinner" aria-hidden="true" style={{ width: 14, height: 14, borderWidth: 2 }} />
+          ) : (
+            <Icon name="send" size={16} />
+          )}
           Test bildirimi gönder
         </button>
-        <button type="button" onClick={() => setShowDiag((v) => !v)} aria-expanded={showDiag} className="cx-tap" style={{ height: 40, padding: '0 12px', borderRadius: 11, border: 'none', background: 'transparent', color: t.textSecondary, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>
+        <button
+          type="button"
+          onClick={() => setShowDiag((v) => !v)}
+          aria-expanded={showDiag}
+          className="cx-tap"
+          style={{
+            height: 40,
+            padding: '0 12px',
+            borderRadius: 11,
+            border: 'none',
+            background: 'transparent',
+            color: t.textSecondary,
+            fontWeight: 600,
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
           Sorun giderme
           <Icon name={showDiag ? 'chevronUp' : 'chevronDown'} size={16} />
         </button>
@@ -194,7 +252,26 @@ export default function NotificationSettings({ t, uid, toast }) {
         </div>
       </div>
       {state === 'default' ? (
-        <button type="button" onClick={enable} disabled={busy} className="cx-tap" style={{ height: 44, borderRadius: 12, border: 'none', background: t.accent, color: '#fff', fontWeight: 700, fontSize: 14.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 4px 12px ${t.accentShadow}` }}>
+        <button
+          type="button"
+          onClick={enable}
+          disabled={busy}
+          className="cx-tap"
+          style={{
+            height: 44,
+            borderRadius: 12,
+            border: 'none',
+            background: t.accent,
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: 14.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            boxShadow: `0 4px 12px ${t.accentShadow}`,
+          }}
+        >
           {busy ? <span className="cx-spinner" aria-hidden="true" /> : <Icon name="bell" size={18} />}
           Bildirimleri aç
         </button>

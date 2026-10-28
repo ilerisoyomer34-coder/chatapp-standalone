@@ -41,10 +41,30 @@ function ImageAttachment({ t, a, onOpen }) {
       type="button"
       onClick={() => onOpen(a)}
       aria-label={`Fotoğrafı aç: ${a.name}`}
-      style={{ display: 'block', marginTop: 2, padding: 0, border: 'none', borderRadius: 9, overflow: 'hidden', width: w, maxWidth: '100%', height: h, background: 'rgba(128,128,128,.18)', cursor: 'zoom-in' }}
+      style={{
+        display: 'block',
+        marginTop: 2,
+        padding: 0,
+        border: 'none',
+        borderRadius: 9,
+        overflow: 'hidden',
+        width: w,
+        maxWidth: '100%',
+        height: h,
+        background: 'rgba(128,128,128,.18)',
+        cursor: 'zoom-in',
+      }}
     >
-      {url ? <img src={url} alt={a.name} width={w} height={h} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-      {!url && !error ? <span className="cx-spinner" aria-hidden="true" style={{ margin: 'auto', display: 'block', marginTop: h / 2 - 9, color: t.textSecondary }} /> : null}
+      {url ? (
+        <img src={url} alt={a.name} width={w} height={h} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : null}
+      {!url && !error ? (
+        <span
+          className="cx-spinner"
+          aria-hidden="true"
+          style={{ margin: 'auto', display: 'block', marginTop: h / 2 - 9, color: t.textSecondary }}
+        />
+      ) : null}
       {error ? <span style={{ display: 'block', padding: 12, fontSize: 12.5, color: t.textSecondary }}>Fotoğraf yüklenemedi</span> : null}
     </button>
   );
@@ -78,8 +98,29 @@ function AudioAttachment({ t, a }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, minWidth: 210 }}>
-      <button type="button" onClick={toggle} aria-label={playing ? 'Duraklat' : 'Sesli mesajı oynat'} className="cx-tap" style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: t.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {load && !url && !error ? <span className="cx-spinner" aria-hidden="true" style={{ width: 16, height: 16 }} /> : <Icon name={playing ? 'pause' : 'play'} size={17} />}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? 'Duraklat' : 'Sesli mesajı oynat'}
+        className="cx-tap"
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: 'none',
+          background: t.accent,
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {load && !url && !error ? (
+          <span className="cx-spinner" aria-hidden="true" style={{ width: 16, height: 16 }} />
+        ) : (
+          <Icon name={playing ? 'pause' : 'play'} size={17} />
+        )}
       </button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <input
@@ -136,7 +177,20 @@ function FileAttachment({ t, a }) {
         }
       }}
       className="cx-tap"
-      style={{ marginTop: 4, padding: '9px 10px', borderRadius: 9, background: 'rgba(128,128,128,.13)', display: 'flex', alignItems: 'center', gap: 10, color: 'inherit', border: 'none', width: 260, maxWidth: '100%', textAlign: 'left' }}
+      style={{
+        marginTop: 4,
+        padding: '9px 10px',
+        borderRadius: 9,
+        background: 'rgba(128,128,128,.13)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        color: 'inherit',
+        border: 'none',
+        width: 260,
+        maxWidth: '100%',
+        textAlign: 'left',
+      }}
     >
       {busy ? <span className="cx-spinner" aria-hidden="true" /> : <Icon name="file" size={26} color={t.accent} />}
       <span style={{ minWidth: 0, flex: 1 }}>

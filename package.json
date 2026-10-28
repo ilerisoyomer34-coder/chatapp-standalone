@@ -11,6 +11,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "build:functions": "npm --prefix functions run build",
     "test:emulator": "npm run build:functions && firebase emulators:exec --only database,auth,firestore,storage --project demo-chatapp \"vitest run --config vitest.emulator.config.js\""
@@ -21,10 +24,16 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@firebase/rules-unit-testing": "^6.0.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "firebase-admin": "^14.5.0",
     "firebase-tools": "^15.34.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }

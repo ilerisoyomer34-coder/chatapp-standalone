@@ -96,7 +96,12 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
               <Icon name="camera" size={16} /> Fotoğraf
             </Button>
             {chat.photoURL ? (
-              <Button t={t} kind="ghost" onClick={() => run({ action: 'update', photoURL: null }, 'Fotoğraf kaldırıldı')} style={{ height: 34, fontSize: 13 }}>
+              <Button
+                t={t}
+                kind="ghost"
+                onClick={() => run({ action: 'update', photoURL: null }, 'Fotoğraf kaldırıldı')}
+                style={{ height: 34, fontSize: 13 }}
+              >
                 Kaldır
               </Button>
             ) : null}
@@ -124,7 +129,24 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
         ) : null}
         {editingName ? (
           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoFocus aria-label="Grup adı" style={{ flex: 1, height: 40, borderRadius: 10, border: `1.5px solid ${t.accent}`, background: t.surface, color: t.textPrimary, padding: '0 12px', fontSize: 15, outline: 'none' }} />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={60}
+              autoFocus
+              aria-label="Grup adı"
+              style={{
+                flex: 1,
+                height: 40,
+                borderRadius: 10,
+                border: `1.5px solid ${t.accent}`,
+                background: t.surface,
+                color: t.textPrimary,
+                padding: '0 12px',
+                fontSize: 15,
+                outline: 'none',
+              }}
+            />
             <Button
               t={t}
               busy={busy}
@@ -142,7 +164,13 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: t.textPrimary }}>{chat.name}</div>
             {iAmAdmin ? (
-              <button type="button" aria-label="Grup adını düzenle" onClick={() => setEditingName(true)} className="cx-tap" style={{ border: 'none', background: 'none', color: t.textSecondary, padding: 4 }}>
+              <button
+                type="button"
+                aria-label="Grup adını düzenle"
+                onClick={() => setEditingName(true)}
+                className="cx-tap"
+                style={{ border: 'none', background: 'none', color: t.textSecondary, padding: 4 }}
+              >
                 <Icon name="edit" size={17} />
               </button>
             ) : null}
@@ -153,8 +181,35 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
 
       <div style={{ padding: '6px 0' }}>
         {iAmAdmin && members.length < MAX_MEMBERS ? (
-          <button type="button" onClick={() => setAdding(true)} className="cx-row" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', border: 'none', background: 'none', color: t.accent, fontWeight: 700, fontSize: 15 }}>
-            <span style={{ width: 40, height: 40, borderRadius: '50%', background: t.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="cx-row"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 16px',
+              border: 'none',
+              background: 'none',
+              color: t.accentText,
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: t.accent,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Icon name="userPlus" size={20} />
             </span>
             Üye ekle
@@ -170,14 +225,62 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
               disabled={!canManage}
               onClick={() => setMemberMenu(u)}
               className={canManage ? 'cx-row' : undefined}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px', border: 'none', background: 'none', color: t.textPrimary, textAlign: 'left', cursor: canManage ? 'pointer' : 'default' }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '9px 16px',
+                border: 'none',
+                background: 'none',
+                color: t.textPrimary,
+                textAlign: 'left',
+                cursor: canManage ? 'pointer' : 'default',
+              }}
             >
               <Avatar name={p?.name} uid={u} color={p?.color} photoURL={p?.photoURL} size={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u === myUid ? 'Sen' : p?.name || 'Silinmiş hesap'}</span>
-                {p?.about ? <span style={{ display: 'block', fontSize: 12.5, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.about}</span> : null}
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {u === myUid ? 'Sen' : p?.name || 'Silinmiş hesap'}
+                </span>
+                {p?.about ? (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 12.5,
+                      color: t.textSecondary,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {p.about}
+                  </span>
+                ) : null}
               </span>
-              {admins[u] ? <span style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, border: `1px solid ${t.accent}`, borderRadius: 6, padding: '2px 6px' }}>Yönetici</span> : null}
+              {admins[u] ? (
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: t.accentText,
+                    border: `1px solid ${t.accent}`,
+                    borderRadius: 6,
+                    padding: '2px 6px',
+                  }}
+                >
+                  Yönetici
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -190,7 +293,15 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
           busy={busy}
           style={{ width: '100%' }}
           onClick={async () => {
-            if (!(await confirmDialog({ title: 'Gruptan ayrılmak istiyor musun?', text: `"${chat.name}" grubundan ayrılacaksın. Tekrar eklenmedikçe mesajları göremezsin.`, okText: 'Ayrıl', danger: true }))) return;
+            if (
+              !(await confirmDialog({
+                title: 'Gruptan ayrılmak istiyor musun?',
+                text: `"${chat.name}" grubundan ayrılacaksın. Tekrar eklenmedikçe mesajları göremezsin.`,
+                okText: 'Ayrıl',
+                danger: true,
+              }))
+            )
+              return;
             if (await run({ action: 'leave' }, 'Gruptan ayrıldın')) {
               onClose();
               onLeft();
@@ -216,7 +327,10 @@ export default function GroupInfo({ t, me, chatId, chat, profiles, contacts = []
               danger: true,
               onClick: async () => {
                 const n = profiles[memberMenu]?.name || 'Bu üye';
-                if (await confirmDialog({ title: 'Gruptan çıkarılsın mı?', text: `${n} gruptan çıkarılacak.`, okText: 'Çıkar', danger: true })) run({ action: 'remove', uid: memberMenu });
+                if (
+                  await confirmDialog({ title: 'Gruptan çıkarılsın mı?', text: `${n} gruptan çıkarılacak.`, okText: 'Çıkar', danger: true })
+                )
+                  run({ action: 'remove', uid: memberMenu });
               },
             },
           ]}

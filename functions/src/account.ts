@@ -54,7 +54,12 @@ export async function deleteAccount(
       Object.assign(updates, membershipRemoval(chatId, uid));
       const remaining = Object.keys(chat.members).filter((u) => u !== uid && chat.members[u] === true);
       if (!remaining.length) {
-        Object.assign(updates, { [`chats/${chatId}`]: null, [`messages/${chatId}`]: null, [`typing/${chatId}`]: null, [`receipts/${chatId}`]: null });
+        Object.assign(updates, {
+          [`chats/${chatId}`]: null,
+          [`messages/${chatId}`]: null,
+          [`typing/${chatId}`]: null,
+          [`receipts/${chatId}`]: null,
+        });
         await deletePrefix(`chats/${chatId}/`);
         await deletePrefix(`groups/${chatId}/`);
         continue;
@@ -62,7 +67,12 @@ export async function deleteAccount(
       const admins = Object.keys(chat.admins || {}).filter((u) => u !== uid && chat.admins[u] === true && chat.members[u] === true);
       if (!admins.length) updates[`chats/${chatId}/admins/${remaining[0]}`] = true;
       const id = db.ref(`messages/${chatId}`).push().key as string;
-      updates[`messages/${chatId}/${id}`] = { from: uid, system: 'left', text: 'Bir üye hesabını sildi ve gruptan ayrıldı.', ts: ServerValue.TIMESTAMP };
+      updates[`messages/${chatId}/${id}`] = {
+        from: uid,
+        system: 'left',
+        text: 'Bir üye hesabını sildi ve gruptan ayrıldı.',
+        ts: ServerValue.TIMESTAMP,
+      };
     }
   }
 

@@ -25,7 +25,16 @@ export function Modal({ t, title, onClose, children, footer, width = 420, labell
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
-      style={{ position: 'fixed', inset: 0, zIndex: 120, background: t.overlay, display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeUp .18s ease' }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 120,
+        background: t.overlay,
+        display: 'flex',
+        alignItems: desktop ? 'center' : 'flex-end',
+        justifyContent: 'center',
+        animation: 'fadeUp .18s ease',
+      }}
     >
       <div
         ref={boxRef}
@@ -47,9 +56,33 @@ export function Modal({ t, title, onClose, children, footer, width = 420, labell
         }}
       >
         {title ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 10px 10px 18px', borderBottom: `1px solid ${t.divider}` }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '14px 10px 10px 18px',
+              borderBottom: `1px solid ${t.divider}`,
+            }}
+          >
             <div style={{ flex: 1, fontSize: 16.5, fontWeight: 700 }}>{title}</div>
-            <button type="button" onClick={onClose} aria-label="Kapat" className="cx-tap" style={{ width: 36, height: 36, border: 'none', borderRadius: '50%', background: 'none', color: t.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Kapat"
+              className="cx-tap"
+              style={{
+                width: 36,
+                height: 36,
+                border: 'none',
+                borderRadius: '50%',
+                background: 'none',
+                color: t.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Icon name="x" size={20} />
             </button>
           </div>
@@ -57,7 +90,11 @@ export function Modal({ t, title, onClose, children, footer, width = 420, labell
         <div className="cx-scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {children}
         </div>
-        {footer ? <div style={{ padding: 12, borderTop: `1px solid ${t.divider}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>{footer}</div> : null}
+        {footer ? (
+          <div style={{ padding: 12, borderTop: `1px solid ${t.divider}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -78,7 +115,18 @@ export function ActionSheet({ t, title, items, onClose, header }) {
               it.onClick();
             }}
             className="cx-row"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', border: 'none', background: 'none', color: it.danger ? t.error : t.textPrimary, fontSize: 15, textAlign: 'left' }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              padding: '13px 20px',
+              border: 'none',
+              background: 'none',
+              color: it.danger ? t.error : t.textPrimary,
+              fontSize: 15,
+              textAlign: 'left',
+            }}
           >
             {it.icon ? <Icon name={it.icon} size={20} color={it.danger ? t.error : t.textSecondary} /> : null}
             <span style={{ flex: 1 }}>{it.label}</span>
@@ -103,7 +151,22 @@ export function Button({ t, children, onClick, kind = 'primary', disabled, busy,
       onClick={onClick}
       disabled={disabled || busy}
       className="cx-tap"
-      style={{ height: 40, padding: '0 16px', borderRadius: 11, border: palette.border, background: palette.bg, color: palette.fg, fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: disabled ? 0.55 : 1, ...style }}
+      style={{
+        height: 40,
+        padding: '0 16px',
+        borderRadius: 11,
+        border: palette.border,
+        background: palette.bg,
+        color: palette.fg,
+        fontWeight: 700,
+        fontSize: 14,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        opacity: disabled ? 0.55 : 1,
+        ...style,
+      }}
     >
       {busy ? <span className="cx-spinner" aria-hidden="true" style={{ width: 15, height: 15 }} /> : null}
       {children}
@@ -113,14 +176,55 @@ export function Button({ t, children, onClick, kind = 'primary', disabled, busy,
 
 export function Toggle({ t, checked, onChange, label, description, disabled }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '8px 0',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 14.5, color: t.textPrimary }}>{label}</span>
-        {description ? <span style={{ display: 'block', fontSize: 12.5, color: t.textSecondary, marginTop: 2, lineHeight: 1.45 }}>{description}</span> : null}
+        {description ? (
+          <span style={{ display: 'block', fontSize: 12.5, color: t.textSecondary, marginTop: 2, lineHeight: 1.45 }}>{description}</span>
+        ) : null}
       </span>
-      <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="cx-visually-hidden" />
-      <span aria-hidden="true" style={{ width: 44, height: 26, borderRadius: 13, background: checked ? t.accent : t.divider, position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
-        <span style={{ position: 'absolute', top: 3, left: checked ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)', transition: 'left .15s' }} />
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="cx-visually-hidden"
+      />
+      <span
+        aria-hidden="true"
+        style={{
+          width: 44,
+          height: 26,
+          borderRadius: 13,
+          background: checked ? t.accent : t.divider,
+          position: 'relative',
+          transition: 'background .15s',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: checked ? 21 : 3,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+            transition: 'left .15s',
+          }}
+        />
       </span>
     </label>
   );
@@ -138,7 +242,19 @@ export function TextInput({ t, label, id, error, multiline, ...props }) {
       <Tag
         id={id}
         {...props}
-        style={{ width: '100%', minHeight: multiline ? 72 : 44, padding: multiline ? '10px 12px' : '0 12px', borderRadius: 11, border: `1.5px solid ${error ? t.error : t.divider}`, background: t.surface, color: t.textPrimary, fontSize: 15, outline: 'none', resize: multiline ? 'vertical' : undefined, fontFamily: 'inherit' }}
+        style={{
+          width: '100%',
+          minHeight: multiline ? 72 : 44,
+          padding: multiline ? '10px 12px' : '0 12px',
+          borderRadius: 11,
+          border: `1.5px solid ${error ? t.error : t.divider}`,
+          background: t.surface,
+          color: t.textPrimary,
+          fontSize: 15,
+          outline: 'none',
+          resize: multiline ? 'vertical' : undefined,
+          fontFamily: 'inherit',
+        }}
       />
       {error ? <div style={{ color: t.error, fontSize: 12.5, marginTop: 5, fontWeight: 600 }}>{error}</div> : null}
     </div>

@@ -145,7 +145,9 @@ export async function serviceAccessToken(serviceAccountJson, { fetchImpl = fetch
   const header = { alg: 'RS256', typ: 'JWT', kid: sa.private_key_id };
   const claims = { iss: sa.client_email, scope: SCOPES, aud: OAUTH_TOKEN_URL, iat, exp: iat + 3600 };
   const unsigned = `${jsonB64url(header)}.${jsonB64url(claims)}`;
-  const key = await crypto.subtle.importKey('pkcs8', pemToPkcs8(sa.private_key), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const key = await crypto.subtle.importKey('pkcs8', pemToPkcs8(sa.private_key), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, [
+    'sign',
+  ]);
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(unsigned));
   const res = await fetchImpl(OAUTH_TOKEN_URL, {
     method: 'POST',
@@ -198,7 +200,12 @@ export function fcmSender({ projectId, accessToken, db, fetchImpl = fetch }) {
           const status = err.error && err.error.status;
           const details = JSON.stringify(err.error && err.error.details ? err.error.details : []);
           // Geçersiz/kaydı silinmiş token'ları temizle.
-          if (res.status === 404 || status === 'NOT_FOUND' || /UNREGISTERED/.test(details) || (res.status === 400 && /registration token/i.test(JSON.stringify(err)))) {
+          if (
+            res.status === 404 ||
+            status === 'NOT_FOUND' ||
+            /UNREGISTERED/.test(details) ||
+            (res.status === 400 && /registration token/i.test(JSON.stringify(err)))
+          ) {
             await db.remove(`pushTokens/${uid}/${token}`).catch(() => {});
           }
         })
@@ -354,7 +361,8 @@ function corsHeaders(env, origin) {
   };
 }
 
-const json = (body, status, headers) => new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json' } });
+const json = (body, status, headers) =>
+  new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json' } });
 
 export default {
   async fetch(request, env) {
@@ -370,14 +378,14 @@ export default {
       const appPath = env.APP_PATH || '/chatapp-standalone/';
       const path = new URL(request.url).pathname;
       let result;
-      if (path === '/notify/message') result = await notifyMessage({ db, push, uid, chatId: body.chatId, messageId: body.messageId, appPath });
+      if (path === '/notify/message')
+        result = await notifyMessage({ db, push, uid, chatId: body.chatId, messageId: body.messageId, appPath });
       else if (path === '/notify/request') result = await notifyRequest({ db, push, uid, requestId: body.requestId, appPath });
       else if (path === '/test') {
         const delay = Math.min(Math.max(Number(body.delaySeconds) || 0, 0), 10);
         if (delay) await new Promise((resolve) => setTimeout(resolve, delay * 1000));
         result = await sendTestPush({ db, push, uid, token: body.token });
-      }
-      else throw new HttpError(404, 'not-found');
+      } else throw new HttpError(404, 'not-found');
       return json({ ok: true, ...result }, 200, cors);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : 500;

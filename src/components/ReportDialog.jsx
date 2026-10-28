@@ -40,17 +40,43 @@ export default function ReportDialog({ t, me, target, targetName, chatId, messag
     >
       <div style={{ padding: '12px 18px' }}>
         <div style={{ fontSize: 13.5, color: t.textSecondary, marginBottom: 10, lineHeight: 1.5 }}>
-          {messageId ? 'Bu mesaj ve gönderen yöneticiye bildirilecek.' : 'Bu kişi yöneticiye bildirilecek.'} Kişiyi ayrıca engellemek için sohbet menüsündeki "Engelle"yi kullanabilirsin.
+          {messageId ? 'Bu mesaj ve gönderen yöneticiye bildirilecek.' : 'Bu kişi yöneticiye bildirilecek.'} Kişiyi ayrıca engellemek için
+          sohbet menüsündeki "Engelle"yi kullanabilirsin.
         </div>
         <div role="radiogroup" aria-label="Şikâyet nedeni" style={{ marginBottom: 10 }}>
           {REASONS.map((r) => (
-            <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 14.5, color: t.textPrimary, cursor: 'pointer' }}>
-              <input type="radio" name="reason" checked={reason === r} onChange={() => setReason(r)} style={{ accentColor: t.accent, width: 18, height: 18 }} />
+            <label
+              key={r}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '7px 0',
+                fontSize: 14.5,
+                color: t.textPrimary,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="radio"
+                name="reason"
+                checked={reason === r}
+                onChange={() => setReason(r)}
+                style={{ accentColor: t.accent, width: 18, height: 18 }}
+              />
               {r}
             </label>
           ))}
         </div>
-        <TextInput t={t} id="report-note" label="AÇIKLAMA (İSTEĞE BAĞLI)" multiline maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+        <TextInput
+          t={t}
+          id="report-note"
+          label="AÇIKLAMA (İSTEĞE BAĞLI)"
+          multiline
+          maxLength={300}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
       </div>
     </Modal>
   );

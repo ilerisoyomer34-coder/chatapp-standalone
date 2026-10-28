@@ -5,7 +5,10 @@ import { Icon } from '../../lib/icons.jsx';
 import { canRecord, startRecording } from '../../lib/recorder.js';
 import { IconButton } from '../ui.jsx';
 
-const EMOJIS = '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🤭 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🤢 🤮 🤧 😷 🤒 🤕 👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👋 🤚 🖐️ ✋ 👏 🙌 👐 🤲 🤝 🙏 💪 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💯 🔥 ⭐ 🎉 🎊 ✅ ❌ ⚽ 🏀 🎮 🚗 ✈️ 🌍 ☀️ 🌙 🍎 🍕 🎂 ☕'.split(' ');
+const EMOJIS =
+  '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🤭 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🤢 🤮 🤧 😷 🤒 🤕 👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👋 🤚 🖐️ ✋ 👏 🙌 👐 🤲 🤝 🙏 💪 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💯 🔥 ⭐ 🎉 🎊 ✅ ❌ ⚽ 🏀 🎮 🚗 ✈️ 🌍 ☀️ 🌙 🍎 🍕 🎂 ☕'.split(
+    ' '
+  );
 const MAX_ROWS = 5;
 const LINE_HEIGHT = 21;
 const CANCEL_SLIDE_PX = 90;
@@ -15,18 +18,45 @@ const finePointer = () => typeof window !== 'undefined' && window.matchMedia && 
 
 function ContextBar({ t, icon, color, title, text, onClose }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px 8px 12px', background: t.bg, borderRadius: 12, borderLeft: `4px solid ${color}` }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 10px 8px 12px',
+        background: t.bg,
+        borderRadius: 12,
+        borderLeft: `4px solid ${color}`,
+      }}
+    >
       <Icon name={icon} size={18} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color }}>{title}</div>
-        <div style={{ fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</div>
+        <div style={{ fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {text}
+        </div>
       </div>
       <IconButton label="Vazgeç" icon="x" onClick={onClose} size={30} iconSize={16} color={t.textSecondary} />
     </div>
   );
 }
 
-export default function Composer({ t, chatId, disabledNotice, replyTo, replyName, editing, onCancelReply, onCancelEdit, onSend, onSaveEdit, onFiles, onVoice, onTyping, toast }) {
+export default function Composer({
+  t,
+  chatId,
+  disabledNotice,
+  replyTo,
+  replyName,
+  editing,
+  onCancelReply,
+  onCancelEdit,
+  onSend,
+  onSaveEdit,
+  onFiles,
+  onVoice,
+  onTyping,
+  toast,
+}) {
   const [draft, setDraft] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [rec, setRec] = useState(null); // { handle, startX, offset, seconds }
@@ -60,14 +90,27 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
     el.style.height = `${Math.min(el.scrollHeight, MAX_ROWS * LINE_HEIGHT + 20)}px`;
   }, [draft]);
 
+  const recHandle = rec ? rec.handle : null;
   useEffect(() => {
-    if (!rec) return undefined;
+    if (!recHandle) return undefined;
     const id = setInterval(() => setRec((r) => (r ? { ...r, seconds: (performance.now() - r.handle.started) / 1000 } : r)), 200);
     return () => clearInterval(id);
-  }, [rec?.handle]);
+  }, [recHandle]);
 
   if (disabledNotice) {
-    return <div style={{ padding: '14px 18px calc(14px + env(safe-area-inset-bottom))', textAlign: 'center', color: t.textSecondary, fontSize: 13.5, background: t.bg }}>{disabledNotice}</div>;
+    return (
+      <div
+        style={{
+          padding: '14px 18px calc(14px + env(safe-area-inset-bottom))',
+          textAlign: 'center',
+          color: t.textSecondary,
+          fontSize: 13.5,
+          background: t.bg,
+        }}
+      >
+        {disabledNotice}
+      </div>
+    );
   }
 
   const hasText = !!draft.trim();
@@ -147,9 +190,38 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
   };
 
   return (
-    <div style={{ flexShrink: 0, padding: '8px clamp(10px,6%,70px) calc(10px + env(safe-area-inset-bottom))', background: t.chatBg, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+    <div
+      style={{
+        flexShrink: 0,
+        padding: '8px clamp(10px,6%,70px) calc(10px + env(safe-area-inset-bottom))',
+        background: t.chatBg,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        position: 'relative',
+      }}
+    >
       {emojiOpen ? (
-        <div className="cx-scroll" style={{ position: 'absolute', left: 'clamp(10px,6%,70px)', bottom: 'calc(100% - 4px)', width: 'min(340px, calc(100% - 20px))', maxHeight: 230, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 3, padding: 10, background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 16, boxShadow: '0 12px 38px rgba(0,0,0,.24)', zIndex: 8 }}>
+        <div
+          className="cx-scroll"
+          style={{
+            position: 'absolute',
+            left: 'clamp(10px,6%,70px)',
+            bottom: 'calc(100% - 4px)',
+            width: 'min(340px, calc(100% - 20px))',
+            maxHeight: 230,
+            overflowY: 'auto',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, 1fr)',
+            gap: 3,
+            padding: 10,
+            background: t.bg,
+            border: `1px solid ${t.divider}`,
+            borderRadius: 16,
+            boxShadow: '0 12px 38px rgba(0,0,0,.24)',
+            zIndex: 8,
+          }}
+        >
           {EMOJIS.map((e) => (
             <button
               key={e}
@@ -160,7 +232,16 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
                 setDraft((d) => (d + e).slice(0, MAX_TEXT));
                 inputRef.current?.focus();
               }}
-              style={{ height: 36, border: 'none', borderRadius: 8, background: 'transparent', fontSize: 23, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                height: 36,
+                border: 'none',
+                borderRadius: 8,
+                background: 'transparent',
+                fontSize: 23,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               {e}
             </button>
@@ -168,7 +249,14 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
         </div>
       ) : null}
       {replyTo && !editing ? (
-        <ContextBar t={t} icon="reply" color={colorFor(replyTo.from)} title={replyName} text={messagePreview(replyTo) || '…'} onClose={onCancelReply} />
+        <ContextBar
+          t={t}
+          icon="reply"
+          color={colorFor(replyTo.from)}
+          title={replyName}
+          text={messagePreview(replyTo) || '…'}
+          onClose={onCancelReply}
+        />
       ) : null}
       {editing ? (
         <ContextBar
@@ -185,14 +273,60 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
       ) : null}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9 }}>
         {rec ? (
-          <div role="status" aria-live="polite" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, background: t.bg, borderRadius: 24, padding: '0 16px', minHeight: 48, boxShadow: '0 1px 3px rgba(0,0,0,.08)', minWidth: 0 }}>
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              background: t.bg,
+              borderRadius: 24,
+              padding: '0 16px',
+              minHeight: 48,
+              boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+              minWidth: 0,
+            }}
+          >
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#E53935', animation: 'recPulse 1s infinite' }} />
             <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 15, color: t.textPrimary }}>{formatDuration(rec.seconds)}</span>
-            <span style={{ flex: 1, textAlign: 'center', fontSize: 13, color: t.textSecondary, transform: `translateX(${rec.offset}px)`, whiteSpace: 'nowrap' }}>◀ İptal için kaydır</span>
+            <span
+              style={{
+                flex: 1,
+                textAlign: 'center',
+                fontSize: 13,
+                color: t.textSecondary,
+                transform: `translateX(${rec.offset}px)`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ◀ İptal için kaydır
+            </span>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 4, background: t.bg, borderRadius: 24, padding: '4px 6px', minHeight: 48, boxShadow: '0 1px 3px rgba(0,0,0,.08)', minWidth: 0 }}>
-            <IconButton label="Emoji seç" icon="smile" onClick={() => setEmojiOpen((o) => !o)} size={40} iconSize={22} color={emojiOpen ? t.accent : t.textSecondary} />
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: 4,
+              background: t.bg,
+              borderRadius: 24,
+              padding: '4px 6px',
+              minHeight: 48,
+              boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+              minWidth: 0,
+            }}
+          >
+            <IconButton
+              label="Emoji seç"
+              icon="smile"
+              onClick={() => setEmojiOpen((o) => !o)}
+              size={40}
+              iconSize={22}
+              color={emojiOpen ? t.accent : t.textSecondary}
+            />
             <textarea
               ref={inputRef}
               value={draft}
@@ -206,7 +340,20 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
               placeholder={editing ? 'Mesajı düzenle…' : 'Mesaj yaz…'}
               aria-label="Mesaj"
               enterKeyHint={finePointer() ? 'send' : 'enter'}
-              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, lineHeight: `${LINE_HEIGHT}px`, color: t.textPrimary, resize: 'none', padding: '9px 2px', maxHeight: MAX_ROWS * LINE_HEIGHT + 20, overflowY: 'auto' }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 15,
+                lineHeight: `${LINE_HEIGHT}px`,
+                color: t.textPrimary,
+                resize: 'none',
+                padding: '9px 2px',
+                maxHeight: MAX_ROWS * LINE_HEIGHT + 20,
+                overflowY: 'auto',
+              }}
             />
             <input
               ref={fileRef}
@@ -242,7 +389,19 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
             className="cx-tap"
             aria-label={editing ? 'Kaydet' : 'Gönder'}
             title={editing ? 'Kaydet' : 'Gönder'}
-            style={{ width: 48, height: 48, borderRadius: '50%', border: 'none', background: hasText ? t.accent : t.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', color: hasText ? '#fff' : t.textSecondary, flexShrink: 0, boxShadow: hasText ? `0 4px 12px ${t.accentShadow}` : 'none' }}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              border: 'none',
+              background: hasText ? t.accent : t.surface,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: hasText ? '#fff' : t.textSecondary,
+              flexShrink: 0,
+              boxShadow: hasText ? `0 4px 12px ${t.accentShadow}` : 'none',
+            }}
           >
             <Icon name={editing ? 'check' : 'send'} size={22} />
           </button>
@@ -257,7 +416,22 @@ export default function Composer({ t, chatId, disabledNotice, replyTo, replyName
             onPointerUp={endRecording}
             onPointerCancel={endRecording}
             onContextMenu={(e) => e.preventDefault()}
-            style={{ width: 48, height: 48, borderRadius: '50%', border: 'none', background: rec ? '#E53935' : t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: `0 4px 12px ${t.accentShadow}`, touchAction: 'none', transform: rec ? 'scale(1.15)' : 'none', transition: 'transform .15s, background .15s' }}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              border: 'none',
+              background: rec ? '#E53935' : t.accent,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              flexShrink: 0,
+              boxShadow: `0 4px 12px ${t.accentShadow}`,
+              touchAction: 'none',
+              transform: rec ? 'scale(1.15)' : 'none',
+              transition: 'transform .15s, background .15s',
+            }}
           >
             <Icon name="mic" size={22} />
           </button>

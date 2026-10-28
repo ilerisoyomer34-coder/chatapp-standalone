@@ -87,19 +87,52 @@ export default function CreateGroup({ t, contacts, onClose, onCreated, toast }) 
               type="button"
               onClick={() => fileRef.current?.click()}
               aria-label="Grup fotoğrafı seç"
-              style={{ width: 96, height: 96, borderRadius: '50%', border: 'none', background: t.surface, color: t.textSecondary, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, fontSize: 12 }}
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: '50%',
+                border: 'none',
+                background: t.surface,
+                color: t.textSecondary,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 4,
+                fontSize: 12,
+              }}
             >
-              {photoUrl ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (
+              {photoUrl ? (
+                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
                 <>
                   <Icon name="camera" size={28} />
                   Fotoğraf
                 </>
               )}
             </button>
-            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+            />
           </div>
-          <TextInput t={t} id="group-name" label="GRUP ADI" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="Örn. Aile" autoFocus />
-          <div style={{ fontSize: 12.5, color: t.textSecondary }}>{selected.length + 1} üye (en fazla {MAX_MEMBERS}). Grubu kuran kişi yönetici olur.</div>
+          <TextInput
+            t={t}
+            id="group-name"
+            label="GRUP ADI"
+            value={name}
+            maxLength={60}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Örn. Aile"
+            autoFocus
+          />
+          <div style={{ fontSize: 12.5, color: t.textSecondary }}>
+            {selected.length + 1} üye (en fazla {MAX_MEMBERS}). Grubu kuran kişi yönetici olur.
+          </div>
         </div>
       )}
     </Modal>

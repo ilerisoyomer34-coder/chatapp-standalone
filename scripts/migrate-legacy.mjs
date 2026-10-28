@@ -63,7 +63,9 @@ function openDb() {
   if (!emulator && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     throw new Error('GOOGLE_APPLICATION_CREDENTIALS ayarlı değil (servis hesabı JSON dosyasının yolu).');
   }
-  const app = initializeApp(emulator ? { projectId: 'demo-chatapp', databaseURL: DATABASE_URL } : { credential: applicationDefault(), databaseURL: DATABASE_URL });
+  const app = initializeApp(
+    emulator ? { projectId: 'demo-chatapp', databaseURL: DATABASE_URL } : { credential: applicationDefault(), databaseURL: DATABASE_URL }
+  );
   return getDatabase(app);
 }
 
@@ -78,7 +80,9 @@ export async function backup(db) {
   mkdirSync('backup', { recursive: true });
   const file = `backup/legacy-db-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
   writeFileSync(file, JSON.stringify(data, null, 2));
-  console.log(`Yedek yazıldı: ${file} (${Object.keys(data.users || {}).length} kullanıcı). Bu dosya şifreler içerir; paylaşma, iş bitince sil.`);
+  console.log(
+    `Yedek yazıldı: ${file} (${Object.keys(data.users || {}).length} kullanıcı). Bu dosya şifreler içerir; paylaşma, iş bitince sil.`
+  );
   return file;
 }
 
@@ -111,7 +115,9 @@ export async function link(db, oldUsername, newUid) {
     [`users/${newUid}/username`]: name,
     [`legacyLinks/${current.slice(RESERVED_PREFIX.length)}`]: newUid,
   });
-  console.log(`"${current.slice(RESERVED_PREFIX.length)}" → ${newUid} bağlandı. Kullanıcı adı artık @${name} (eski geçici ad @${profile.username} serbest).`);
+  console.log(
+    `"${current.slice(RESERVED_PREFIX.length)}" → ${newUid} bağlandı. Kullanıcı adı artık @${name} (eski geçici ad @${profile.username} serbest).`
+  );
 }
 
 export async function chats(db, legacy) {
@@ -164,7 +170,10 @@ export async function syncAccess(db, fs) {
   let n = 0;
   for (const [chatId, chat] of Object.entries(chatsVal)) {
     const onlyTrue = (m) => Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v === true));
-    await fs.collection('chatAccess').doc(chatId).set({ type: chat.type || 'direct', members: onlyTrue(chat.members), admins: onlyTrue(chat.admins) });
+    await fs
+      .collection('chatAccess')
+      .doc(chatId)
+      .set({ type: chat.type || 'direct', members: onlyTrue(chat.members), admins: onlyTrue(chat.admins) });
     n++;
   }
   console.log(`${n} sohbetin erişim belgesi yazıldı.`);
@@ -180,7 +189,12 @@ export async function deleteLegacy(db, yes) {
 async function main() {
   const { cmd, flags, pos } = args();
   if (!cmd || cmd === 'help') {
-    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).join('\n'));
+    console.log(
+      readFileSync(new URL(import.meta.url), 'utf8')
+        .split('\n')
+        .filter((l) => l.startsWith('//'))
+        .join('\n')
+    );
     return;
   }
   const db = openDb();

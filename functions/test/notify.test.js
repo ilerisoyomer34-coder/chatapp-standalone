@@ -54,7 +54,15 @@ describe('yeni mesaj', () => {
     expect(uc.unread).toBe(3);
     expect(uc.lastMessage).toMatchObject({ text: 'Merhaba Bob', from: A });
     expect(push.calls).toHaveLength(1);
-    expect(push.calls[0].data).toMatchObject({ type: 'message', title: 'Alice', body: 'Merhaba Bob', chatId: AB, messageId: 'm1', tag: `chat-${AB}`, badge: '3' });
+    expect(push.calls[0].data).toMatchObject({
+      type: 'message',
+      title: 'Alice',
+      body: 'Merhaba Bob',
+      chatId: AB,
+      messageId: 'm1',
+      tag: `chat-${AB}`,
+      badge: '3',
+    });
     expect(push.calls[0].data.url).toBe(`/chatapp-standalone/?chat=${encodeURIComponent(AB)}`);
     // Gönderenin kendi kaydına dokunulmaz.
     expect((await db.ref(`userChats/${A}`).get()).exists()).toBe(false);
@@ -120,9 +128,21 @@ describe('sohbet istekleri', () => {
 
   it('kabul edilince gönderenin sohbet listesi oluşturulur', async () => {
     const push = fakeSender();
-    await handleRequestChange(db, push, `${B}_${A}`, { from: B, to: A, status: 'pending', ts: 1 }, { from: B, to: A, status: 'accepted', ts: 1, respondedAt: 5 });
+    await handleRequestChange(
+      db,
+      push,
+      `${B}_${A}`,
+      { from: B, to: A, status: 'pending', ts: 1 },
+      { from: B, to: A, status: 'accepted', ts: 1, respondedAt: 5 }
+    );
     expect((await db.ref(`userChats/${B}/${AB}`).get()).val()).toMatchObject({ unread: 2 });
-    await handleRequestChange(db, push, `${A}_${B}`, { from: A, to: B, status: 'pending', ts: 1 }, { from: A, to: B, status: 'accepted', ts: 1, respondedAt: 5 });
+    await handleRequestChange(
+      db,
+      push,
+      `${A}_${B}`,
+      { from: A, to: B, status: 'pending', ts: 1 },
+      { from: A, to: B, status: 'accepted', ts: 1, respondedAt: 5 }
+    );
     expect((await db.ref(`userChats/${A}/${AB}`).get()).val()).toEqual({ unread: 0, updatedAt: 5 });
   });
 
@@ -156,7 +176,7 @@ describe('test bildirimi', () => {
     expect(push.calls[1]).toMatchObject({ to: B, tokens: [other], data: { type: 'test', tag: 'chatapp-test' } });
   });
 
-  it('başkasının token\'ıyla başkasına gönderilemez; cihazı yoksa hiçbir şey gönderilmez', async () => {
+  it("başkasının token'ıyla başkasına gönderilemez; cihazı yoksa hiçbir şey gönderilmez", async () => {
     const push = fakeSender();
     await expect(sendTestPush(db, push, A, TOKEN_B)).resolves.toEqual({ tokens: 0, sent: 0 });
     expect(push.calls).toHaveLength(0);

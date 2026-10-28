@@ -26,8 +26,30 @@ function useWindowWidth() {
 
 function Splash({ t, text }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, background: t.primary, color: '#fff' }}>
-      <div style={{ width: 72, height: 72, borderRadius: 21, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'popIn .5s ease' }}>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 20,
+        background: t.primary,
+        color: '#fff',
+      }}
+    >
+      <div
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 21,
+          background: 'rgba(255,255,255,.16)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'popIn .5s ease',
+        }}
+      >
         <Icon name="messageCircle" size={38} />
       </div>
       <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 0.3 }}>ChatApp</div>
@@ -56,25 +78,22 @@ export default function App() {
   const profile = useDbValue(uid ? `users/${uid}` : null, { cache: true });
   const admin = useDbValue(uid ? `admins/${uid}` : null, { cache: true });
 
-  const signOutEverywhere = useCallback(
-    async (message) => {
-      const current = auth.currentUser;
-      try {
-        if (current) await removePushToken(current.uid);
-        if (cleanupRef.current) await cleanupRef.current();
-      } catch (err) {
-        console.warn('[ChatApp] çıkış temizliği', err);
-      }
-      cleanupRef.current = null;
-      await setAppBadge(0);
-      // Çevrimdışı önbellek (sohbetler, mesajlar) bu cihazda bırakılmaz.
-      await cacheClear();
-      await logout().catch((err) => console.error('[ChatApp] çıkış', err));
-      setRegistering(null);
-      setNotice(message || '');
-    },
-    []
-  );
+  const signOutEverywhere = useCallback(async (message) => {
+    const current = auth.currentUser;
+    try {
+      if (current) await removePushToken(current.uid);
+      if (cleanupRef.current) await cleanupRef.current();
+    } catch (err) {
+      console.warn('[ChatApp] çıkış temizliği', err);
+    }
+    cleanupRef.current = null;
+    await setAppBadge(0);
+    // Çevrimdışı önbellek (sohbetler, mesajlar) bu cihazda bırakılmaz.
+    await cacheClear();
+    await logout().catch((err) => console.error('[ChatApp] çıkış', err));
+    setRegistering(null);
+    setNotice(message || '');
+  }, []);
 
   // Yönetici hesabı devre dışı bıraktığında açık oturum anında kapanır.
   const disabled = profile.value && profile.value.disabled === true;
@@ -93,7 +112,8 @@ export default function App() {
       await claimUsernameAndCreateProfile(newUid, pending);
       setRegistering(null);
     } catch (error) {
-      const msg = error.code === 'username-taken' ? 'Bu kullanıcı adı alınmış. Başka bir ad dene.' : friendlyError(error, 'profil oluşturma');
+      const msg =
+        error.code === 'username-taken' ? 'Bu kullanıcı adı alınmış. Başka bir ad dene.' : friendlyError(error, 'profil oluşturma');
       setRegistering({ ...pending, error: msg, failed: true });
     }
   }, []);
@@ -139,10 +159,10 @@ export default function App() {
   }
 
   return (
-    <div className="app-root" style={{ background: t.canvas, color: t.textPrimary }}>
+    <main className="app-root" style={{ background: t.canvas, color: t.textPrimary }}>
       {body}
       <UpdateBanner t={t} />
       <DialogHost t={t} />
-    </div>
+    </main>
   );
 }

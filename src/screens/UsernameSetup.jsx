@@ -29,9 +29,32 @@ export default function UsernameSetup({ t, uid, initial, onLogout }) {
   }
 
   return (
-    <div className="cx-scroll" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowY: 'auto', background: t.canvas, padding: 'max(24px, env(safe-area-inset-top)) 20px 24px' }}>
+    <div
+      className="cx-scroll"
+      style={{
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        overflowY: 'auto',
+        background: t.canvas,
+        padding: 'max(24px, env(safe-area-inset-top)) 20px 24px',
+      }}
+    >
       <form onSubmit={submit} noValidate style={{ width: '100%', maxWidth: 380, margin: 'auto', animation: 'fadeUp .4s ease' }}>
-        <div style={{ width: 60, height: 60, borderRadius: 18, background: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', margin: '0 auto 18px' }}>
+        <div
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 18,
+            background: t.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            margin: '0 auto 18px',
+          }}
+        >
           <Icon name="user" size={30} />
         </div>
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: t.textPrimary, textAlign: 'center' }}>Profilini tamamla</h2>
@@ -39,7 +62,17 @@ export default function UsernameSetup({ t, uid, initial, onLogout }) {
           Arkadaşların seni kullanıcı adınla bulacak.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 24 }}>
-          <Field t={t} id="s-name" label="GÖRÜNEN AD" icon="user" value={name} onChange={(e) => setName(e.target.value)} placeholder="Adın Soyadın" maxLength={NAME_MAX} autoComplete="name" />
+          <Field
+            t={t}
+            id="s-name"
+            label="GÖRÜNEN AD"
+            icon="user"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Adın Soyadın"
+            maxLength={NAME_MAX}
+            autoComplete="name"
+          />
           <Field
             t={t}
             id="s-username"
@@ -60,7 +93,12 @@ export default function UsernameSetup({ t, uid, initial, onLogout }) {
           {busy ? 'Lütfen bekle…' : 'Devam et'}
         </PrimaryButton>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <button type="button" onClick={onLogout} className="cx-tap" style={{ border: 'none', background: 'none', color: t.textSecondary, fontWeight: 600, fontSize: 13.5 }}>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="cx-tap"
+            style={{ border: 'none', background: 'none', color: t.textSecondary, fontWeight: 600, fontSize: 13.5 }}
+          >
             Çıkış yap
           </button>
         </div>

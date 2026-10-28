@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useDbValue } from '../hooks/data.js';
+import { EMPTY, useDbValue } from '../hooks/data.js';
 import { adminSetUserDisabled, dismissReport } from '../lib/api.js';
 import { friendlyError } from '../lib/errors.js';
 import { formatListTime } from '../lib/format.js';
@@ -10,9 +10,9 @@ import { Avatar, SectionTitle } from './ui.jsx';
 // Çıkarma/geri alma "adminSetUserDisabled" Cloud Function'ı ile yapılır.
 export default function AdminPanel({ t, me, toast }) {
   const { value } = useDbValue('users');
-  const reportsNode = useDbValue('reports').value || {};
+  const reportsNode = useDbValue('reports').value || EMPTY;
   const [busyUid, setBusyUid] = useState(null);
-  const users = value || {};
+  const users = value || EMPTY;
 
   const [active, removed] = useMemo(() => {
     const all = Object.entries(users)
@@ -46,10 +46,24 @@ export default function AdminPanel({ t, me, toast }) {
   };
 
   const row = (u, disabled) => (
-    <div key={u.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: `1px solid ${t.divider}` }}>
+    <div
+      key={u.uid}
+      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: `1px solid ${t.divider}` }}
+    >
       <Avatar name={u.name} uid={u.uid} color={u.color} photoURL={u.photoURL} size={36} dim={disabled} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: t.textPrimary,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {u.name}
+        </div>
         <div style={{ fontSize: 12, color: t.textSecondary }}>@{u.username}</div>
       </div>
       <button
@@ -57,7 +71,18 @@ export default function AdminPanel({ t, me, toast }) {
         onClick={() => act(u, !disabled)}
         disabled={busyUid === u.uid}
         className="cx-tap"
-        style={{ height: 32, padding: '0 12px', border: 'none', borderRadius: 9, background: disabled ? t.accent : t.error, color: '#fff', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', opacity: busyUid === u.uid ? 0.6 : 1 }}
+        style={{
+          height: 32,
+          padding: '0 12px',
+          border: 'none',
+          borderRadius: 9,
+          background: disabled ? t.accent : t.error,
+          color: '#fff',
+          fontSize: 12,
+          fontWeight: 800,
+          whiteSpace: 'nowrap',
+          opacity: busyUid === u.uid ? 0.6 : 1,
+        }}
       >
         {disabled ? 'Geri Al' : 'Çıkar'}
       </button>
@@ -73,7 +98,9 @@ export default function AdminPanel({ t, me, toast }) {
           <SectionTitle t={t} color={t.error} icon="flag">
             ŞİKÂYETLER ({reports.length})
           </SectionTitle>
-          <div style={{ margin: '8px 12px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, overflow: 'hidden' }}>
+          <div
+            style={{ margin: '8px 12px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, overflow: 'hidden' }}
+          >
             {reports.map((r) => (
               <div key={r.id} style={{ padding: '10px 12px', borderBottom: `1px solid ${t.divider}` }}>
                 <div style={{ fontSize: 13.5, color: t.textPrimary }}>
@@ -83,11 +110,39 @@ export default function AdminPanel({ t, me, toast }) {
                 <div style={{ fontSize: 13, color: t.textSecondary, marginTop: 3, overflowWrap: 'anywhere' }}>{r.reason}</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   {users[r.target] && !users[r.target].disabled ? (
-                    <button type="button" onClick={() => act({ uid: r.target, ...users[r.target] }, true)} className="cx-tap" style={{ height: 30, padding: '0 10px', border: 'none', borderRadius: 8, background: t.error, color: '#fff', fontSize: 12, fontWeight: 800 }}>
+                    <button
+                      type="button"
+                      onClick={() => act({ uid: r.target, ...users[r.target] }, true)}
+                      className="cx-tap"
+                      style={{
+                        height: 30,
+                        padding: '0 10px',
+                        border: 'none',
+                        borderRadius: 8,
+                        background: t.error,
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
                       Kullanıcıyı çıkar
                     </button>
                   ) : null}
-                  <button type="button" onClick={() => dismissReport(r.id).catch((err) => toast(friendlyError(err, 'şikâyet'), 'no'))} className="cx-tap" style={{ height: 30, padding: '0 10px', border: `1px solid ${t.divider}`, borderRadius: 8, background: 'transparent', color: t.textSecondary, fontSize: 12, fontWeight: 700 }}>
+                  <button
+                    type="button"
+                    onClick={() => dismissReport(r.id).catch((err) => toast(friendlyError(err, 'şikâyet'), 'no'))}
+                    className="cx-tap"
+                    style={{
+                      height: 30,
+                      padding: '0 10px',
+                      border: `1px solid ${t.divider}`,
+                      borderRadius: 8,
+                      background: 'transparent',
+                      color: t.textSecondary,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
                     Kapat
                   </button>
                 </div>
@@ -100,14 +155,22 @@ export default function AdminPanel({ t, me, toast }) {
         YÖNETİCİ PANELİ ({active.length})
       </SectionTitle>
       <div style={{ margin: '8px 12px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, overflow: 'hidden' }}>
-        {active.length === 0 ? <div style={{ padding: 14, color: t.textSecondary, fontSize: 13, textAlign: 'center' }}>Çıkarılacak kullanıcı yok.</div> : active.map((u) => row(u, false))}
+        {active.length === 0 ? (
+          <div style={{ padding: 14, color: t.textSecondary, fontSize: 13, textAlign: 'center' }}>Çıkarılacak kullanıcı yok.</div>
+        ) : (
+          active.map((u) => row(u, false))
+        )}
       </div>
       {removed.length ? (
         <>
           <SectionTitle t={t} color={t.error}>
             ÇIKARILANLAR ({removed.length})
           </SectionTitle>
-          <div style={{ margin: '8px 12px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, overflow: 'hidden' }}>{removed.map((u) => row(u, true))}</div>
+          <div
+            style={{ margin: '8px 12px 12px', background: t.bg, border: `1px solid ${t.divider}`, borderRadius: 15, overflow: 'hidden' }}
+          >
+            {removed.map((u) => row(u, true))}
+          </div>
         </>
       ) : null}
     </>

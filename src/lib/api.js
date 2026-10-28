@@ -217,8 +217,14 @@ export async function sendMessage(me, chatId, { id, text, attachment, replyTo, f
   const clean = (text || '').trim();
   if (clean) msg.text = clean.slice(0, MAX_TEXT);
   if (attachment) {
-    const a = { path: attachment.path, name: attachment.name.slice(0, 200), size: attachment.size, type: (attachment.type || 'application/octet-stream').slice(0, 100) };
-    for (const k of ['thumbPath', 'duration', 'width', 'height']) if (attachment[k] !== undefined && attachment[k] !== null) a[k] = attachment[k];
+    const a = {
+      path: attachment.path,
+      name: attachment.name.slice(0, 200),
+      size: attachment.size,
+      type: (attachment.type || 'application/octet-stream').slice(0, 100),
+    };
+    for (const k of ['thumbPath', 'duration', 'width', 'height'])
+      if (attachment[k] !== undefined && attachment[k] !== null) a[k] = attachment[k];
     msg.attachment = a;
   }
   if (replyTo) msg.replyTo = replyTo;

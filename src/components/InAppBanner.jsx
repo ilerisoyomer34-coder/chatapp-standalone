@@ -13,7 +13,8 @@ export default function InAppBanner({ t, banner, profile, chatName, onOpen, onCl
   const name = profile?.name || '';
   const group = chatName && chatName.type === 'group' ? chatName : null;
   const title = banner.kind === 'request' ? 'Yeni sohbet isteği' : group ? group.name : name || 'Yeni mesaj';
-  const body = banner.kind === 'request' ? `${name || 'Biri'} sana sohbet isteği gönderdi.` : group && name ? `${name}: ${banner.body}` : banner.body;
+  const body =
+    banner.kind === 'request' ? `${name || 'Biri'} sana sohbet isteği gönderdi.` : group && name ? `${name}: ${banner.body}` : banner.body;
   return (
     <button
       type="button"
@@ -44,10 +45,25 @@ export default function InAppBanner({ t, banner, profile, chatName, onOpen, onCl
         textAlign: 'left',
       }}
     >
-      {group ? <Avatar name={group.name} uid={banner.chatId} photoURL={group.photoURL} size={40} /> : <Avatar name={name || '?'} uid={banner.from} color={profile?.color} photoURL={profile?.photoURL} size={40} />}
+      {group ? (
+        <Avatar name={group.name} uid={banner.chatId} photoURL={group.photoURL} size={40} />
+      ) : (
+        <Avatar name={name || '?'} uid={banner.from} color={profile?.color} photoURL={profile?.photoURL} size={40} />
+      )}
       <span style={{ flex: 1, minWidth: 0 }}>
         <b style={{ display: 'block', fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</b>
-        <span style={{ display: 'block', fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+        <span
+          style={{
+            display: 'block',
+            fontSize: 13,
+            color: t.textSecondary,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {body}
+        </span>
       </span>
     </button>
   );
