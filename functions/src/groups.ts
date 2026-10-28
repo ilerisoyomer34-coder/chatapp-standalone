@@ -104,7 +104,7 @@ export async function manageGroup(db: Database, actor: string, data: Record<stri
       },
     };
     const text = `${actorName}, "${name}" grubunu oluşturdu.`;
-    updates[`userChats/${actor}/${chatId}`] = { unread: 0, updatedAt: ServerValue.TIMESTAMP, lastMessage: { text, from: actor, ts: ServerValue.TIMESTAMP } };
+    updates[`userChats/${actor}/${chatId}`] = { unread: 0, updatedAt: ServerValue.TIMESTAMP, lastMessage: { text, from: actor, ts: ServerValue.TIMESTAMP, system: true } };
     for (const m of members) updates[`userChats/${m}/${chatId}`] = { unread: 0, updatedAt: ServerValue.TIMESTAMP };
     systemMessage(db, updates, chatId, actor, 'created', text);
     await db.ref().update(updates);

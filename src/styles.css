@@ -55,3 +55,9 @@ button:disabled { cursor: default; }
 @media (max-width: 859px) {
   input, textarea, select { font-size: 16px !important; }
 }
+
+/* Mesaj seçenekleri düğmesi: fareyle üzerine gelince görünür; dokunmatikte uzun basma kullanılır. */
+.cx-msg-more { opacity: 0; transition: opacity .12s; }
+[role="group"]:hover > .cx-msg-more, .cx-msg-more:focus-visible { opacity: 1; }
+@media (pointer: coarse) { .cx-msg-more { display: none !important; } }
+@keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }

@@ -107,7 +107,8 @@ export async function handleMessageCreated(
   const senderName = await displayName(db, from);
   const title = chat.type === 'group' ? (system ? chat.name || 'Grup' : `${chat.name || 'Grup'} · ${senderName}`) : senderName;
   const body = system ? truncate(msg.text || '', 100) : notificationBody(msg);
-  const lastMessage = { text: messagePreview(msg), from, ts };
+  // Sistem mesajları listede "Ad: …" öneki almasın diye işaretlenir.
+  const lastMessage = system ? { text: messagePreview(msg), from, ts, system: true } : { text: messagePreview(msg), from, ts };
   const recipients = Object.keys(chat.members).filter((u) => u !== from && chat.members[u] === true);
 
   return Promise.all(

@@ -3,7 +3,7 @@ import { Avatar } from './ui.jsx';
 
 // Uygulama açık ama başka ekrandayken gelen mesaj/istek için üst bant.
 // Ad, profil yüklendikçe güncellenir (bant profil gelmeden açılabilir).
-export default function InAppBanner({ t, banner, profile, onOpen, onClose }) {
+export default function InAppBanner({ t, banner, profile, chatName, onOpen, onClose }) {
   useEffect(() => {
     if (!banner) return undefined;
     const id = setTimeout(onClose, 4500);
@@ -11,8 +11,9 @@ export default function InAppBanner({ t, banner, profile, onOpen, onClose }) {
   }, [banner, onClose]);
   if (!banner) return null;
   const name = profile?.name || '';
-  const title = banner.kind === 'request' ? 'Yeni sohbet isteği' : name || 'Yeni mesaj';
-  const body = banner.kind === 'request' ? `${name || 'Biri'} sana sohbet isteği gönderdi.` : banner.body;
+  const group = chatName && chatName.type === 'group' ? chatName : null;
+  const title = banner.kind === 'request' ? 'Yeni sohbet isteği' : group ? group.name : name || 'Yeni mesaj';
+  const body = banner.kind === 'request' ? `${name || 'Biri'} sana sohbet isteği gönderdi.` : group && name ? `${name}: ${banner.body}` : banner.body;
   return (
     <button
       type="button"
@@ -43,7 +44,7 @@ export default function InAppBanner({ t, banner, profile, onOpen, onClose }) {
         textAlign: 'left',
       }}
     >
-      <Avatar name={name || '?'} uid={banner.uid} color={profile?.color} photoURL={profile?.photoURL} size={40} />
+      {group ? <Avatar name={group.name} uid={banner.chatId} photoURL={group.photoURL} size={40} /> : <Avatar name={name || '?'} uid={banner.from} color={profile?.color} photoURL={profile?.photoURL} size={40} />}
       <span style={{ flex: 1, minWidth: 0 }}>
         <b style={{ display: 'block', fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</b>
         <span style={{ display: 'block', fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>

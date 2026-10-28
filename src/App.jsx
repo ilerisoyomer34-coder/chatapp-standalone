@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase.js';
+import { DialogHost } from './components/dialogs.jsx';
 import { useDbValue } from './hooks/data.js';
 import { claimUsernameAndCreateProfile, logout } from './lib/api.js';
+import { cacheClear } from './lib/cache.js';
 import { friendlyError } from './lib/errors.js';
 import { Icon } from './lib/icons.jsx';
 import { removePushToken, setAppBadge } from './lib/push.js';
@@ -63,6 +65,8 @@ export default function App() {
       }
       cleanupRef.current = null;
       await setAppBadge(0);
+      // Çevrimdışı önbellek (sohbetler, mesajlar) bu cihazda bırakılmaz.
+      await cacheClear();
       await logout().catch((err) => console.error('[ChatApp] çıkış', err));
       setRegistering(null);
       setNotice(message || '');
@@ -126,6 +130,7 @@ export default function App() {
         me={{ uid: user.uid, ...profile.value }}
         isAdmin={admin.value === true}
         onLogout={() => signOutEverywhere()}
+        onAccountDeleted={() => signOutEverywhere('Hesabın ve verilerin silindi.')}
         registerCleanup={registerCleanup}
       />
     );
@@ -134,6 +139,7 @@ export default function App() {
   return (
     <div className="app-root" style={{ background: t.canvas, color: t.textPrimary }}>
       {body}
+      <DialogHost t={t} />
     </div>
   );
 }

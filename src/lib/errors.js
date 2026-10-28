@@ -1,7 +1,7 @@
 // Teknik hatalar kullanıcıya gösterilmez; yalnızca konsola yazılır.
 export const GENERIC_ERROR = 'Bir sorun oluştu, yeniden dene.';
 
-const AUTH_MESSAGES = {
+const MESSAGES = {
   'auth/invalid-credential': 'E-posta veya şifre hatalı.',
   'auth/wrong-password': 'E-posta veya şifre hatalı.',
   'auth/user-not-found': 'E-posta veya şifre hatalı.',
@@ -13,27 +13,28 @@ const AUTH_MESSAGES = {
   'auth/network-request-failed': 'İnternet bağlantısı yok. Bağlantını kontrol edip yeniden dene.',
   'auth/user-disabled': 'Bu hesap yönetici tarafından devre dışı bırakıldı.',
   'auth/missing-email': 'E-posta adresi gerekli.',
+  'auth/missing-password': 'Şifre gerekli.',
   'auth/requires-recent-login': 'Güvenlik için yeniden giriş yapman gerekiyor.',
   'auth/operation-not-allowed': 'E-posta ile giriş şu anda kapalı. Lütfen yöneticiye haber ver.',
-};
-
-const FUNCTION_MESSAGES = {
-  'functions/permission-denied': 'Bu işlem için yetkin yok.',
+  'quota-exceeded': 'Bugün en fazla 20 sohbet isteği gönderebilirsin. Yarın yeniden dene.',
+  'username-taken': 'Bu kullanıcı adı alınmış. Başka bir ad dene.',
+  'storage/unauthorized': 'Bu dosyaya erişim yetkin yok.',
+  'storage/quota-exceeded': 'Depolama kotası doldu. Lütfen yöneticiye haber ver.',
+  'storage/retry-limit-exceeded': 'Yükleme tamamlanamadı. Bağlantını kontrol edip yeniden dene.',
+  'storage/object-not-found': 'Dosya bulunamadı; silinmiş olabilir.',
   'functions/unauthenticated': 'Önce giriş yapmalısın.',
-  'functions/not-found': 'Kullanıcı bulunamadı.',
-  'functions/failed-precondition': 'Bu işlem şu anda yapılamıyor.',
   'functions/unavailable': 'Sunucuya ulaşılamadı. Biraz sonra yeniden dene.',
+  'functions/internal': GENERIC_ERROR,
 };
 
 export function friendlyError(err, context) {
   console.error(`[ChatApp] ${context || 'hata'}`, err);
   const code = err && err.code;
-  if (code && AUTH_MESSAGES[code]) return AUTH_MESSAGES[code];
-  if (code && FUNCTION_MESSAGES[code]) {
-    // Sunucu fonksiyonları kullanıcıya uygun Türkçe mesaj döndürür.
-    if (err.message && code !== 'functions/unavailable' && code !== 'functions/internal') return err.message;
-    return FUNCTION_MESSAGES[code];
+  // Sunucu fonksiyonları kullanıcıya uygun Türkçe mesaj döndürür (permission-denied, failed-precondition…).
+  if (code && code.startsWith('functions/') && !MESSAGES[code] && err.message && /[ğüşıöçĞÜŞİÖÇ ]/.test(err.message)) {
+    return err.message;
   }
+  if (code && MESSAGES[code]) return MESSAGES[code];
   if (code === 'PERMISSION_DENIED' || /permission[_ ]denied/i.test(String(err && err.message))) {
     return 'Bu işlem için yetkin yok.';
   }

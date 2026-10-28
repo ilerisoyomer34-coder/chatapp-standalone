@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectDatabaseEmulator, getDatabase } from 'firebase/database';
-import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 
 const env = import.meta.env;
 
@@ -49,11 +48,35 @@ export const auth = getAuth(app);
 auth.languageCode = 'tr';
 
 export const db = getDatabase(app);
-export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 // Yalnızca yerel geliştirme: `firebase emulators:start` ile birlikte VITE_USE_EMULATORS=true.
-if (env.DEV && env.VITE_USE_EMULATORS === 'true') {
+export const USE_EMULATORS = !!(env.DEV && env.VITE_USE_EMULATORS === 'true');
+if (USE_EMULATORS) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectDatabaseEmulator(db, '127.0.0.1', 9000);
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+}
+
+// Functions ve Storage SDK'ları ilk ihtiyaçta yüklenir (ilk açılış paketi küçük kalsın).
+let functionsPromise = null;
+export function getFunctionsLazy() {
+  if (!functionsPromise) {
+    functionsPromise = import('firebase/functions').then((m) => {
+      const f = m.getFunctions(app, FUNCTIONS_REGION);
+      if (USE_EMULATORS) m.connectFunctionsEmulator(f, '127.0.0.1', 5001);
+      return { f, httpsCallable: m.httpsCallable };
+    });
+  }
+  return functionsPromise;
+}
+
+let storagePromise = null;
+export function getStorageLazy() {
+  if (!storagePromise) {
+    storagePromise = import('firebase/storage').then((m) => {
+      const s = m.getStorage(app);
+      if (USE_EMULATORS) m.connectStorageEmulator(s, '127.0.0.1', 9199);
+      return { s, m };
+    });
+  }
+  return storagePromise;
 }

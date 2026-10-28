@@ -1,7 +1,7 @@
 // ChatApp Cloud Functions (2. nesil, Node.js 22, europe-west1).
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getDatabase, ServerValue } from 'firebase-admin/database';
+import { getDatabaseWithUrl, ServerValue } from 'firebase-admin/database';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getStorage } from 'firebase-admin/storage';
@@ -21,6 +21,14 @@ initializeApp();
 
 const REGION = 'europe-west1';
 const INSTANCE = 'chatapp-d8a5b-default-rtdb';
+const DATABASE_URL = `https://${INSTANCE}.europe-west1.firebasedatabase.app`;
+const STORAGE_BUCKET = 'chatapp-d8a5b.firebasestorage.app';
+// Varsayılan yapılandırmaya güvenmek yerine adresler açıkça verilir (emülatörde de doğru ad alanı).
+const getDatabase = () => getDatabaseWithUrl(DATABASE_URL);
+
+// Veritabanı europe-west1'de; tetikleyiciler de orada çalışır. Yerel Functions emülatörü RTDB
+// tetikleyicilerini yalnızca us-central1'de çalıştırdığı için emülatörde bölge değiştirilir.
+const DB_TRIGGER_REGION = process.env.FUNCTIONS_EMULATOR === 'true' ? 'us-central1' : REGION;
 // App Check kurulana kadar geçici olarak kapatılabilir: functions/.env → ENFORCE_APP_CHECK=false
 const ENFORCE_APP_CHECK = defineBoolean('ENFORCE_APP_CHECK', { default: true });
 
@@ -28,11 +36,11 @@ setGlobalOptions({ region: REGION, maxInstances: 10 });
 
 const sender = () => fcmSender(getDatabase(), getMessaging());
 const deletePrefix: PrefixDeleter = async (prefix) => {
-  await getStorage().bucket().deleteFiles({ prefix, force: true });
+  await getStorage().bucket(STORAGE_BUCKET).deleteFiles({ prefix, force: true });
 };
 
 export const onMessageCreated = onValueCreated(
-  { ref: '/messages/{chatId}/{messageId}', instance: INSTANCE, region: REGION, retry: false },
+  { ref: '/messages/{chatId}/{messageId}', instance: INSTANCE, region: DB_TRIGGER_REGION, retry: false },
   async (event) => {
     const { chatId, messageId } = event.params;
     const results = await handleMessageCreated(getDatabase(), sender(), chatId, messageId, event.data.val() as ChatMessage | null);
@@ -42,7 +50,7 @@ export const onMessageCreated = onValueCreated(
 
 // Düzenleme / herkesten silme: sohbet listesi önizlemesi ve Storage dosyaları.
 export const onMessageUpdated = onValueUpdated(
-  { ref: '/messages/{chatId}/{messageId}', instance: INSTANCE, region: REGION, retry: false },
+  { ref: '/messages/{chatId}/{messageId}', instance: INSTANCE, region: DB_TRIGGER_REGION, retry: false },
   async (event) => {
     const { chatId, messageId } = event.params;
     const result = await handleMessageUpdated(
@@ -58,7 +66,7 @@ export const onMessageUpdated = onValueUpdated(
 );
 
 export const onRequestCreated = onValueCreated(
-  { ref: '/requests/{requestId}', instance: INSTANCE, region: REGION, retry: false },
+  { ref: '/requests/{requestId}', instance: INSTANCE, region: DB_TRIGGER_REGION, retry: false },
   async (event) => {
     const result = await handleRequestChange(getDatabase(), sender(), event.params.requestId, null, event.data.val() as ChatRequest | null);
     logger.info('istek oluşturuldu', { requestId: event.params.requestId, result });
@@ -66,7 +74,7 @@ export const onRequestCreated = onValueCreated(
 );
 
 export const onRequestUpdated = onValueUpdated(
-  { ref: '/requests/{requestId}', instance: INSTANCE, region: REGION, retry: false },
+  { ref: '/requests/{requestId}', instance: INSTANCE, region: DB_TRIGGER_REGION, retry: false },
   async (event) => {
     const result = await handleRequestChange(
       getDatabase(),
@@ -81,7 +89,7 @@ export const onRequestUpdated = onValueUpdated(
 
 // Sohbet üyeliğini Storage kuralları için Firestore'a yansıt.
 export const syncChatAccessOnWrite = onValueWritten(
-  { ref: '/chats/{chatId}', instance: INSTANCE, region: REGION, retry: true },
+  { ref: '/chats/{chatId}', instance: INSTANCE, region: DB_TRIGGER_REGION, retry: true },
   async (event) => {
     const result = await syncChatAccess(getFirestore(), event.params.chatId, event.data.after.val());
     logger.info('sohbet erişimi eşitlendi', { chatId: event.params.chatId, result });

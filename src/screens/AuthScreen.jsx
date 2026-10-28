@@ -273,7 +273,14 @@ export default function AuthScreen({ t, desktop, onRegistering, onRegistered, no
               </>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 24, fontSize: 12, color: t.textSecondary }}>
+          {isRegister ? (
+            <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: t.textSecondary, lineHeight: 1.5 }}>
+              Üye olarak <a href={`${import.meta.env.BASE_URL}kosullar.html`} target="_blank" rel="noopener" style={{ color: t.accent }}>Kullanım Koşulları</a>'nı kabul etmiş olursun. Verilerinin nasıl işlendiği:{' '}
+              <a href={`${import.meta.env.BASE_URL}gizlilik.html`} target="_blank" rel="noopener" style={{ color: t.accent }}>Gizlilik Politikası</a> ve{' '}
+              <a href={`${import.meta.env.BASE_URL}kvkk.html`} target="_blank" rel="noopener" style={{ color: t.accent }}>KVKK Aydınlatma Metni</a>.
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 20, fontSize: 12, color: t.textSecondary }}>
             <Icon name="lock" size={14} />
             Bağlantın şifreli (HTTPS)
           </div>

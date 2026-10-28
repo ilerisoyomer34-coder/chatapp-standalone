@@ -19,9 +19,10 @@ beforeAll(async () => {
   process.env.FIREBASE_CONFIG = JSON.stringify({ projectId: 'demo-chatapp', databaseURL: `http://127.0.0.1:9000?ns=${NS}` });
   const mod = await import('../lib/index.js');
   fn = mod.adminSetUserDisabled;
-  const { getDatabase } = await import('firebase-admin/database');
+  const { getDatabaseWithUrl } = await import('firebase-admin/database');
   const { getAuth } = await import('firebase-admin/auth');
-  db = getDatabase();
+  // Fonksiyonlar veritabanına açık adresle bağlanır (ad alanı: chatapp-d8a5b-default-rtdb).
+  db = getDatabaseWithUrl('https://chatapp-d8a5b-default-rtdb.europe-west1.firebasedatabase.app');
   auth = getAuth();
 });
 

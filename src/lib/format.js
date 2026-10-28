@@ -67,10 +67,25 @@ export function colorFor(key) {
   return PALETTE[h % PALETTE.length];
 }
 
+// "son görülme bugün 14:05" / "dün 09:12" / "12.10.2026 18:00"
+export function formatLastSeen(ts, now = Date.now()) {
+  if (!ts) return '';
+  const diff = dayDiff(ts, now);
+  if (diff <= 0) return `son görülme bugün ${formatTime(ts)}`;
+  if (diff === 1) return `son görülme dün ${formatTime(ts)}`;
+  return `son görülme ${shortDateFmt.format(new Date(ts))} ${formatTime(ts)}`;
+}
+
+export function formatDuration(seconds) {
+  const s = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 // Sohbet listesi / bildirim önizlemesi.
 export function messagePreview(msg) {
   if (!msg) return '';
   if (msg.deleted) return 'Bu mesaj silindi';
+  if (msg.system) return msg.text || '';
   const text = (msg.text || '').replace(/\s+/g, ' ').trim();
   if (text) return text;
   const a = msg.attachment;
