@@ -82,8 +82,9 @@ yapman gereken adımları** ve **test adımlarını** içerir.
 
 ## 2. Değişen / eklenen dosyalar
 
-Kısaltılmamış tam içerikler bu daldaki dosyalardır (GitHub'da PR'ın "Files changed" sekmesinde
-her biri eksiksiz görünür).
+Kısaltılmamış tam içerikler bu daldaki dosyalardır: GitHub'da
+`claude/asama-1-2-guvenlik-bildirim` dalında her dosya eksiksiz görünür (PR açılırsa "Files changed"
+sekmesinde de).
 
 | Dosya | Durum | Açıklama |
 |---|---|---|

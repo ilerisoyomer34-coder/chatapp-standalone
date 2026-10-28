@@ -154,10 +154,17 @@ export default function ChatView({ t, me, chatId, other, otherUid, userChat, des
   const markingRef = useRef(0);
 
   useEffect(() => {
+    let timer = null;
     const tryMark = () => {
+      clearTimeout(timer);
       if (document.visibilityState !== 'visible') return;
       if (!(unread > 0 || lastIncomingTs > myRead)) return;
-      if (Date.now() - markingRef.current < 1500) return;
+      // Art arda gelen mesajlarda yazmaları seyrelt ama son mesajı da mutlaka işaretle.
+      const wait = 1500 - (Date.now() - markingRef.current);
+      if (wait > 0) {
+        timer = setTimeout(tryMark, wait);
+        return;
+      }
       markingRef.current = Date.now();
       markChatRead(myUid, chatId).catch((err) => console.warn('[ChatApp] okundu', err));
     };
@@ -165,6 +172,7 @@ export default function ChatView({ t, me, chatId, other, otherUid, userChat, des
     document.addEventListener('visibilitychange', tryMark);
     window.addEventListener('focus', tryMark);
     return () => {
+      clearTimeout(timer);
       document.removeEventListener('visibilitychange', tryMark);
       window.removeEventListener('focus', tryMark);
     };
