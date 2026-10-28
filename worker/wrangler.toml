@@ -1,0 +1,13 @@
+# ChatApp B planı — Cloudflare Worker bildirim uç noktası
+# Dağıtım: cd worker && npx wrangler deploy
+# Gizli değişken (asla depoya girmez):
+#   npx wrangler secret put SERVICE_ACCOUNT_JSON   ← servis hesabı JSON dosyasının tüm içeriği
+name = "chatapp-push"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+PROJECT_ID = "chatapp-d8a5b"
+DATABASE_URL = "https://chatapp-d8a5b-default-rtdb.europe-west1.firebasedatabase.app"
+ALLOWED_ORIGIN = "https://ilerisoyomer34-coder.github.io"
+APP_PATH = "/chatapp-standalone/"

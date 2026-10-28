@@ -1,0 +1,7 @@
+dist/
+functions/lib/
+node_modules/
+package-lock.json
+functions/package-lock.json
+public/
+*.md

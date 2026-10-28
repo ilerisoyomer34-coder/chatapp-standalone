@@ -1,0 +1,53 @@
+name: Firebase dağıtımı (kurallar ve fonksiyonlar)
+
+# Yalnızca elle tetiklenir: Actions → "Firebase dağıtımı" → Run workflow.
+# Gerekli gizli değişken: FIREBASE_SERVICE_ACCOUNT (dağıtım servis hesabının JSON anahtarı).
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Ne dağıtılsın?
+        type: choice
+        options:
+          - functions,database,firestore,storage
+          - database,firestore,storage
+          - functions
+        default: functions,database,firestore,storage
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix functions
+      - name: Servis hesabı anahtarını geçici dosyaya yaz
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$SA_JSON" || { echo "FIREBASE_SERVICE_ACCOUNT gizli değişkeni eksik"; exit 1; }
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+      # App Check kurulana kadar callable fonksiyonlar App Check istemez. Kurduktan sonra
+      # depo değişkeni ENFORCE_APP_CHECK=true yap ve bu iş akışını yeniden çalıştır.
+      - name: Fonksiyon parametreleri
+        env:
+          ENFORCE: ${{ vars.ENFORCE_APP_CHECK || 'false' }}
+        run: printf 'ENFORCE_APP_CHECK=%s\n' "$ENFORCE" > functions/.env.chatapp-d8a5b
+      - name: firebase deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          TARGET: ${{ inputs.target }}
+        run: npx firebase deploy --only "$TARGET" --project chatapp-d8a5b --non-interactive --force
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

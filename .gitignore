@@ -1,0 +1,19 @@
+node_modules/
+dist/
+functions/lib/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+.firebase/
+firebase-debug*.log
+database-debug.log
+# Servis hesabı anahtarları ve yedekler asla depoya girmez
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+backup/
+scripts/mapping.json
+worker/.dev.vars
+worker/.wrangler/
+.DS_Store
