@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Cloud Storage güvenlik kuralları.
+// Sohbet üyeliği Realtime Database'de tutulur; Storage kuralları RTDB'yi okuyamadığı için
+// "syncChatAccess" Cloud Function'ı üyeleri Firestore'daki chatAccess/{chatId} belgesine yansıtır.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function access(chatId) {
+      return firestore.get(/databases/(default)/documents/chatAccess/$(chatId)).data;
+    }
+
+    function isMember(chatId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/chatAccess/$(chatId))
+        && access(chatId).members.get(request.auth.uid, false) == true;
+    }
+
+    function isGroupAdmin(chatId) {
+      return isMember(chatId) && access(chatId).admins.get(request.auth.uid, false) == true;
+    }
+
+    function isImage(maxBytes) {
+      return request.resource.size <= maxBytes && request.resource.contentType.matches('image/.*');
+    }
+
+    // Profil fotoğrafı: giriş yapmış herkes okuyabilir, yalnızca sahibi yazar (en fazla 2 MB görsel).
+    match /avatars/{uid}/{file} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid && isImage(2 * 1024 * 1024);
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Grup fotoğrafı: üyeler okur, grup yöneticileri yazar.
+    match /groups/{chatId}/{file} {
+      allow read: if isMember(chatId);
+      allow create, update: if isGroupAdmin(chatId) && isImage(2 * 1024 * 1024);
+      allow delete: if isGroupAdmin(chatId);
+    }
+
+    // Sohbet ekleri: yalnızca sohbet üyeleri okur; en fazla 25 MB; yükleyen siler.
+    match /chats/{chatId}/{messageId}/{file} {
+      allow read: if isMember(chatId);
+      allow create: if isMember(chatId)
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.metadata.uploader == request.auth.uid;
+      allow delete: if isMember(chatId) && resource.metadata.uploader == request.auth.uid;
+    }
+  }
+}

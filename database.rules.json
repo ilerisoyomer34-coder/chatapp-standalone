@@ -2,7 +2,6 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "users": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
@@ -19,7 +18,7 @@
           ".validate": "newData.isString() && newData.val().length <= 140"
         },
         "photoURL": {
-          ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://')"
+          ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://firebasestorage.googleapis.com/')"
         },
         "color": {
           ".validate": "newData.isString() && newData.val().matches(/^#[0-9A-Fa-f]{6}$/)"
@@ -27,13 +26,20 @@
         "createdAt": {
           ".validate": "(!data.exists() && newData.val() === now) || newData.val() === data.val()"
         },
-        "disabled": { ".validate": "newData.val() === data.val()" },
-        "disabledAt": { ".validate": "newData.val() === data.val()" },
-        "disabledBy": { ".validate": "newData.val() === data.val()" },
-        "$other": { ".validate": false }
+        "disabled": {
+          ".validate": "newData.val() === data.val()"
+        },
+        "disabledAt": {
+          ".validate": "newData.val() === data.val()"
+        },
+        "disabledBy": {
+          ".validate": "newData.val() === data.val()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
-
     "usernames": {
       ".read": "auth != null && query.orderByKey === true && query.limitToFirst <= 20",
       "$username": {
@@ -42,15 +48,37 @@
         ".validate": "newData.isString() && $username.matches(/^[a-z0-9_]{3,20}$/)"
       }
     },
-
+    "settings": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "notifPreview": {
+          ".validate": "newData.isBoolean()"
+        },
+        "showLastSeen": {
+          ".validate": "newData.isBoolean()"
+        },
+        "showOnline": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "requests": {
       ".read": "auth != null && (query.orderByChild === 'to' || query.orderByChild === 'from') && query.equalTo === auth.uid",
-      ".indexOn": ["to", "from"],
+      ".indexOn": [
+        "to",
+        "from"
+      ],
       "$requestId": {
         ".read": "auth != null && (data.child('from').val() === auth.uid || data.child('to').val() === auth.uid)",
-        ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && ((newData.exists() && newData.child('from').val() === auth.uid && newData.child('status').val() === 'pending' && (!data.exists() || (data.child('status').val() === 'rejected' && data.child('ts').val() < now - 86400000)) && root.child('requests').child(newData.child('to').val() + '_' + auth.uid).child('status').val() !== 'pending' && !root.child('blocks').child(newData.child('to').val()).child(auth.uid).exists()) || (data.exists() && newData.exists() && data.child('to').val() === auth.uid && data.child('status').val() === 'pending' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected')) || (data.exists() && newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() !== 'pending' && newData.child('status').val() === data.child('status').val()) || (data.exists() && !newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() === 'pending'))",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && ((newData.exists() && newData.child('from').val() === auth.uid && newData.child('status').val() === 'pending' && (!data.exists() || (data.child('status').val() === 'rejected' && data.child('ts').val() < now - 86400000)) && root.child('requests').child(newData.child('to').val() + '_' + auth.uid).child('status').val() !== 'pending' && !root.child('blocks').child(newData.child('to').val()).child(auth.uid).exists() && (newData.parent().parent().child('requestQuota').child(auth.uid).child('count').val() !== root.child('requestQuota').child(auth.uid).child('count').val() || newData.parent().parent().child('requestQuota').child(auth.uid).child('windowStart').val() !== root.child('requestQuota').child(auth.uid).child('windowStart').val())) || (data.exists() && newData.exists() && data.child('to').val() === auth.uid && data.child('status').val() === 'pending' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected')) || (data.exists() && newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() !== 'pending' && newData.child('status').val() === data.child('status').val()) || (data.exists() && !newData.exists() && data.child('from').val() === auth.uid && data.child('status').val() === 'pending'))",
         ".validate": "newData.hasChildren(['from', 'to', 'status', 'ts']) && $requestId === newData.child('from').val() + '_' + newData.child('to').val()",
-        "from": { ".validate": "newData.isString()" },
+        "from": {
+          ".validate": "newData.isString()"
+        },
         "to": {
           ".validate": "newData.isString() && newData.val() !== newData.parent().child('from').val() && root.child('users').child(newData.val()).child('username').exists() && root.child('users').child(newData.val()).child('disabled').val() !== true"
         },
@@ -60,92 +88,186 @@
         "ts": {
           ".validate": "(newData.parent().child('status').val() === 'pending' && newData.val() === now) || newData.val() === data.val()"
         },
-        "respondedAt": { ".validate": "newData.val() === now || newData.val() === data.val()" },
-        "seenBySender": { ".validate": "newData.isBoolean()" },
-        "$other": { ".validate": false }
+        "respondedAt": {
+          ".validate": "newData.val() === now || newData.val() === data.val()"
+        },
+        "seenBySender": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
-
+    "requestQuota": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['windowStart', 'count']) && ((newData.child('windowStart').val() === now && newData.child('count').val() === 1 && (!data.exists() || data.child('windowStart').val() <= now - 86400000)) || (data.exists() && data.child('windowStart').val() > now - 86400000 && newData.child('windowStart').val() === data.child('windowStart').val() && newData.child('count').val() === data.child('count').val() + 1 && newData.child('count').val() <= 20))",
+        "windowStart": {
+          ".validate": "newData.isNumber()"
+        },
+        "count": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "chats": {
       "$chatId": {
         ".read": "auth != null && data.child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true",
         ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && !data.exists() && newData.child('type').val() === 'direct' && newData.child('members').child(auth.uid).val() === true && newData.child('members').child($chatId.replace(auth.uid, '').replace('_', '')).val() === true && ($chatId === auth.uid + '_' + $chatId.replace(auth.uid, '').replace('_', '') || $chatId === $chatId.replace(auth.uid, '').replace('_', '') + '_' + auth.uid) && (newData.parent().parent().child('requests').child(auth.uid + '_' + $chatId.replace(auth.uid, '').replace('_', '')).child('status').val() === 'accepted' || newData.parent().parent().child('requests').child($chatId.replace(auth.uid, '').replace('_', '') + '_' + auth.uid).child('status').val() === 'accepted')",
         ".validate": "newData.hasChildren(['type', 'members', 'createdAt'])",
-        "type": { ".validate": "newData.val() === 'direct' || newData.val() === 'group'" },
+        "type": {
+          ".validate": "newData.val() === 'direct' || newData.val() === 'group'"
+        },
         "members": {
           "$member": {
             ".validate": "newData.val() === true && ($member === auth.uid || $member === $chatId.replace(auth.uid, '').replace('_', ''))"
           }
         },
-        "name": { ".validate": "newData.isString() && newData.val().length <= 60" },
-        "photoURL": { ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://')" },
-        "createdAt": { ".validate": "newData.val() === now" },
-        "$other": { ".validate": false }
+        "name": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && data.parent().child('type').val() === 'group' && data.parent().child('admins').child(auth.uid).val() === true",
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60"
+        },
+        "photoURL": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('disabled').val() !== true && data.parent().child('type').val() === 'group' && data.parent().child('admins').child(auth.uid).val() === true",
+          ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://firebasestorage.googleapis.com/')"
+        },
+        "createdAt": {
+          ".validate": "newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
-
     "messages": {
       "$chatId": {
         ".read": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true",
-        ".indexOn": ["ts"],
+        ".indexOn": [
+          "ts"
+        ],
         "$messageId": {
-          ".write": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true && ((!data.exists() && newData.child('from').val() === auth.uid) || (data.exists() && data.child('from').val() === auth.uid))",
-          ".validate": "newData.hasChildren(['from', 'ts']) && (newData.hasChild('text') || newData.hasChild('attachment') || newData.child('deleted').val() === true)",
-          "from": { ".validate": "newData.val() === auth.uid" },
-          "text": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 4000" },
-          "attachment": {
-            ".validate": "newData.hasChildren(['name', 'size', 'type'])",
-            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200" },
-            "size": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 26214400" },
-            "type": { ".validate": "newData.isString() && newData.val().length <= 100" },
-            "url": { ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://')" },
-            "thumbUrl": { ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://')" },
-            "inline": { ".validate": "newData.isBoolean()" },
-            "$other": { ".validate": false }
+          ".write": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true && ((!data.exists() && newData.child('from').val() === auth.uid && (root.child('chats').child($chatId).child('type').val() !== 'direct' || !root.child('blocks').child($chatId.replace(auth.uid, '').replace('_', '')).child(auth.uid).exists())) || (data.exists() && data.child('from').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['from', 'ts']) && (newData.hasChild('text') || newData.hasChild('attachment') || newData.child('deleted').val() === true || newData.hasChild('system'))",
+          "from": {
+            ".validate": "newData.val() === auth.uid || newData.val() === data.val()"
           },
-          "replyTo": { ".validate": "newData.isString() && newData.val().length <= 64" },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 4000 && (!data.exists() || newData.val() === data.val() || (data.parent().child('ts').val() > now - 900000 && newData.parent().child('editedAt').val() === now))"
+          },
+          "attachment": {
+            ".validate": "newData.hasChildren(['path', 'name', 'size', 'type']) && (!data.exists() || newData.child('path').val() === data.child('path').val())",
+            "path": {
+              ".validate": "newData.isString() && newData.val().length <= 300 && newData.val().beginsWith('chats/' + $chatId + '/' + $messageId + '/')"
+            },
+            "thumbPath": {
+              ".validate": "newData.isString() && newData.val().length <= 300 && newData.val().beginsWith('chats/' + $chatId + '/' + $messageId + '/')"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200"
+            },
+            "size": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 26214400"
+            },
+            "type": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "duration": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+            },
+            "width": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000"
+            },
+            "height": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "replyTo": {
+            ".validate": "newData.isString() && newData.val().length <= 64 && (!data.exists() || newData.val() === data.val())"
+          },
+          "forwarded": {
+            ".validate": "newData.isBoolean() && (!data.exists() || newData.val() === data.val())"
+          },
           "ts": {
             ".validate": "(!data.exists() && newData.val() === now) || (data.exists() && newData.val() === data.val())"
           },
-          "editedAt": { ".validate": "newData.val() === now" },
-          "deleted": { ".validate": "newData.isBoolean()" },
-          "$other": { ".validate": false }
+          "editedAt": {
+            ".validate": "newData.val() === now && data.parent().child('deleted').val() !== true"
+          },
+          "deleted": {
+            ".validate": "newData.val() === true && !newData.parent().hasChild('text') && !newData.parent().hasChild('attachment')"
+          },
+          "reactions": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true && data.parent().parent().hasChild('from')",
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
-
-    "attachments": {
-      "$chatId": {
-        "$messageId": {
-          ".read": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true",
-          ".write": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true && ((!data.exists() && newData.parent().parent().parent().child('messages').child($chatId).child($messageId).child('from').val() === auth.uid) || (data.exists() && !newData.exists() && root.child('messages').child($chatId).child($messageId).child('from').val() === auth.uid))",
-          ".validate": "newData.isString() && newData.val().beginsWith('data:') && newData.val().length <= 7100000"
+    "hidden": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$chatId": {
+          "$messageId": {
+            ".validate": "newData.val() === true"
+          }
         }
       }
     },
-
     "userChats": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('disabled').val() !== true",
         "$chatId": {
-          "unread": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "unread": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
           "lastMessage": {
             ".validate": "newData.hasChildren(['from', 'ts'])",
-            "text": { ".validate": "newData.isString() && newData.val().length <= 200" },
-            "from": { ".validate": "newData.isString() && newData.val().length <= 128" },
-            "ts": { ".validate": "newData.isNumber()" },
-            "$other": { ".validate": false }
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "from": {
+              ".validate": "newData.isString() && newData.val().length <= 128"
+            },
+            "ts": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           },
-          "updatedAt": { ".validate": "newData.isNumber()" },
-          "muted": { ".validate": "newData.isBoolean() || newData.isNumber()" },
-          "pinned": { ".validate": "newData.isBoolean()" },
-          "archived": { ".validate": "newData.isBoolean()" },
-          "$other": { ".validate": false }
+          "updatedAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "muted": {
+            ".validate": "newData.isBoolean() || newData.isNumber()"
+          },
+          "pinned": {
+            ".validate": "newData.isBoolean()"
+          },
+          "archived": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
-
     "typing": {
       "$chatId": {
         ".read": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true",
@@ -155,28 +277,32 @@
         }
       }
     },
-
     "receipts": {
       "$chatId": {
         ".read": "auth != null && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true",
         "$uid": {
           ".write": "auth != null && auth.uid === $uid && root.child('chats').child($chatId).child('members').child(auth.uid).val() === true && root.child('users').child(auth.uid).child('disabled').val() !== true",
-          "read": { ".validate": "newData.val() === now" },
-          "delivered": { ".validate": "newData.val() === now" },
-          "$other": { ".validate": false }
+          "read": {
+            ".validate": "newData.val() === now"
+          },
+          "delivered": {
+            ".validate": "newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
-
     "presence": {
       "$uid": {
         ".write": "auth != null && auth.uid === $uid",
         "online": {
-          ".read": "auth != null",
+          ".read": "auth != null && (auth.uid === $uid || root.child('settings').child($uid).child('showOnline').val() !== false)",
           ".validate": "newData.isBoolean()"
         },
         "lastSeen": {
-          ".read": "auth != null",
+          ".read": "auth != null && (auth.uid === $uid || (root.child('settings').child($uid).child('showLastSeen').val() !== false && root.child('settings').child(auth.uid).child('showLastSeen').val() !== false))",
           ".validate": "newData.isNumber()"
         },
         "activeChat": {
@@ -185,33 +311,70 @@
         },
         "connections": {
           ".read": "auth != null && auth.uid === $uid",
-          "$connId": { ".validate": "newData.isBoolean() || newData.isNumber()" }
+          "$connId": {
+            ".validate": "newData.isBoolean() || newData.isNumber()"
+          }
         },
-        "$other": { ".validate": false }
+        "$other": {
+          ".validate": false
+        }
       }
     },
-
     "pushTokens": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && (!newData.exists() || root.child('users').child(auth.uid).child('disabled').val() !== true)",
         "$token": {
           ".validate": "newData.hasChildren(['platform', 'updatedAt']) && $token.length >= 20 && $token.length <= 512",
-          "platform": { ".validate": "newData.isString() && newData.val().length <= 32" },
-          "updatedAt": { ".validate": "newData.val() === now" },
-          "$other": { ".validate": false }
+          "platform": {
+            ".validate": "newData.isString() && newData.val().length <= 32"
+          },
+          "updatedAt": {
+            ".validate": "newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
-
     "blocks": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('disabled').val() !== true",
-        "$blockedUid": { ".validate": "newData.val() === true && $blockedUid !== $uid" }
+        "$blockedUid": {
+          ".validate": "newData.val() === true && $blockedUid !== $uid"
+        }
       }
     },
-
+    "reports": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$reportId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid && root.child('users').child(auth.uid).child('disabled').val() !== true) || (root.child('admins').child(auth.uid).val() === true && !newData.exists()))",
+        ".validate": "newData.hasChildren(['from', 'target', 'reason', 'ts'])",
+        "from": {
+          ".validate": "newData.isString()"
+        },
+        "target": {
+          ".validate": "newData.isString() && newData.val() !== auth.uid && newData.val().length <= 128 && root.child('users').child(newData.val()).exists()"
+        },
+        "chatId": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "messageId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "reason": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 500"
+        },
+        "ts": {
+          ".validate": "newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "admins": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid"

@@ -3,7 +3,7 @@
 import { ServerValue, type Database } from 'firebase-admin/database';
 import type { Messaging } from 'firebase-admin/messaging';
 import * as logger from 'firebase-functions/logger';
-import { chatIdFor, isMuted, messagePreview, notificationBody, type ChatMessage } from './text.js';
+import { chatIdFor, truncate, isMuted, messagePreview, notificationBody, NOTIFYING_SYSTEM_TYPES, type ChatMessage } from './text.js';
 
 export const APP_PATH = '/chatapp-standalone/';
 export const PUSH_TTL_SECONDS = 60 * 60 * 24; // 1 gün: telefon kapalıysa bildirim bu süre bekler
@@ -69,14 +69,19 @@ async function isBlocked(db: Database, owner: string, other: string): Promise<bo
   return (await db.ref(`blocks/${owner}/${other}`).get()).val() === true;
 }
 
-async function displayName(db: Database, uid: string): Promise<string> {
+// Kullanıcı "bildirimde mesaj içeriğini göster" ayarını kapattıysa gövde gizlenir.
+async function previewAllowed(db: Database, uid: string): Promise<boolean> {
+  return (await db.ref(`settings/${uid}/notifPreview`).get()).val() !== false;
+}
+
+export async function displayName(db: Database, uid: string): Promise<string> {
   const name = (await db.ref(`users/${uid}/name`).get()).val();
   return typeof name === 'string' && name ? name : 'Biri';
 }
 
 export interface RecipientResult {
   uid: string;
-  skipped?: 'blocked' | 'muted' | 'active' | 'no-tokens';
+  skipped?: 'blocked' | 'muted' | 'active' | 'no-tokens' | 'system';
   sent?: number;
 }
 
@@ -90,25 +95,28 @@ export async function handleMessageCreated(
 ): Promise<RecipientResult[]> {
   if (!msg || typeof msg.from !== 'string') return [];
   const from = msg.from;
+  const system = typeof msg.system === 'string' ? msg.system : null;
   const chat = (await db.ref(`chats/${chatId}`).get()).val();
-  if (!chat || !chat.members || chat.members[from] !== true) {
+  // Sistem mesajını sunucu yazar; gönderen (ör. gruptan ayrılan) artık üye olmayabilir.
+  if (!chat || !chat.members || (!system && chat.members[from] !== true)) {
     logger.warn('üye olmayan gönderici veya sohbet yok', { chatId, messageId });
     return [];
   }
   const ts = typeof msg.ts === 'number' ? msg.ts : Date.now();
+  const notifying = !system || NOTIFYING_SYSTEM_TYPES.has(system);
   const senderName = await displayName(db, from);
-  const title = chat.type === 'group' ? `${chat.name || 'Grup'} · ${senderName}` : senderName;
-  const body = notificationBody(msg);
+  const title = chat.type === 'group' ? (system ? chat.name || 'Grup' : `${chat.name || 'Grup'} · ${senderName}`) : senderName;
+  const body = system ? truncate(msg.text || '', 100) : notificationBody(msg);
   const lastMessage = { text: messagePreview(msg), from, ts };
   const recipients = Object.keys(chat.members).filter((u) => u !== from && chat.members[u] === true);
 
   return Promise.all(
     recipients.map(async (uid): Promise<RecipientResult> => {
       // Engellenen kullanıcıdan hiçbir bildirim gelmez.
-      if (await isBlocked(db, uid, from)) return { uid, skipped: 'blocked' };
+      if (!system && (await isBlocked(db, uid, from))) return { uid, skipped: 'blocked' };
 
       const ucRef = db.ref(`userChats/${uid}/${chatId}`);
-      await ucRef.update({ unread: ServerValue.increment(1) });
+      if (notifying) await ucRef.update({ unread: ServerValue.increment(1) });
       // Sıra dışı çalışan tetikleyiciler daha yeni önizlemenin üzerine yazmasın.
       await ucRef.transaction((cur) => {
         const node = cur || {};
@@ -122,17 +130,18 @@ export async function handleMessageCreated(
         db.ref(`presence/${uid}`).get(),
         tokensOf(db, uid),
       ]);
+      if (!notifying) return { uid, skipped: 'system' };
       if (isMuted(mutedSnap.val())) return { uid, skipped: 'muted' };
       const presence = presenceSnap.val() || {};
       const online = presenceSnap.child('connections').exists() || presence.online === true;
       if (online && presence.activeChat === chatId) return { uid, skipped: 'active' };
       if (!tokens.length) return { uid, skipped: 'no-tokens' };
 
-      const badge = await totalUnread(db, uid);
+      const [badge, showBody] = await Promise.all([totalUnread(db, uid), previewAllowed(db, uid)]);
       const sent = await push.send(uid, tokens, {
         type: 'message',
         title,
-        body,
+        body: showBody ? body : 'Yeni mesaj',
         chatId,
         messageId,
         url: `${APP_PATH}?chat=${encodeURIComponent(chatId)}`,

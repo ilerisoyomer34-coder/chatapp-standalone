@@ -55,6 +55,13 @@ async function seed() {
 
 const db = (who) => (who ? env.authenticatedContext(who).database() : env.unauthenticatedContext().database());
 
+// İstek, günlük kota sayacıyla aynı güncellemede yazılmak zorunda.
+const req = (who, from, to, quota = { windowStart: TS, count: 1 }) =>
+  db(who).ref().update({
+    [`requests/${from}_${to}`]: { from, to, status: 'pending', ts: TS },
+    [`requestQuota/${who}`]: quota,
+  });
+
 beforeAll(async () => {
   const [host, port] = (process.env.FIREBASE_DATABASE_EMULATOR_HOST || '127.0.0.1:9000').split(':');
   env = await initializeTestEnvironment({
@@ -161,20 +168,20 @@ describe('kullanıcı listesi ve arama', () => {
 describe('sohbet istekleri', () => {
   it('kullanıcı kendi adına istek gönderebilir', async () => {
     await assertSucceeds(
-      db(CAROL).ref(`requests/${CAROL}_${ALICE}`).set({ from: CAROL, to: ALICE, status: 'pending', ts: TS })
+      req(CAROL, CAROL, ALICE)
     );
   });
   it('başkası adına istek gönderemez', async () => {
     await assertFails(
-      db(CAROL).ref(`requests/${BOB}_${ALICE}`).set({ from: BOB, to: ALICE, status: 'pending', ts: TS })
+      req(CAROL, BOB, ALICE)
     );
   });
   it('kendine veya devre dışı kullanıcıya istek gönderemez', async () => {
     await assertFails(
-      db(CAROL).ref(`requests/${CAROL}_${CAROL}`).set({ from: CAROL, to: CAROL, status: 'pending', ts: TS })
+      req(CAROL, CAROL, CAROL)
     );
     await assertFails(
-      db(CAROL).ref(`requests/${CAROL}_${MALLORY}`).set({ from: CAROL, to: MALLORY, status: 'pending', ts: TS })
+      req(CAROL, CAROL, MALLORY)
     );
   });
   it('istekleri yalnızca kendisine gelen/kendi gönderdiği sorgu ile listeleyebilir', async () => {
@@ -186,7 +193,7 @@ describe('sohbet istekleri', () => {
   });
   it('isteği yalnızca alıcı kabul/ret edebilir', async () => {
     await assertSucceeds(
-      db(CAROL).ref(`requests/${CAROL}_${BOB}`).set({ from: CAROL, to: BOB, status: 'pending', ts: TS })
+      req(CAROL, CAROL, BOB)
     );
     await assertFails(db(CAROL).ref(`requests/${CAROL}_${BOB}`).update({ status: 'accepted', respondedAt: TS }));
     await assertSucceeds(db(BOB).ref(`requests/${CAROL}_${BOB}`).update({ status: 'rejected', respondedAt: TS }));
@@ -197,7 +204,7 @@ describe('sohbet istekleri', () => {
   });
   it('gönderen bekleyen isteğini geri çekebilir, alıcı silemez', async () => {
     await assertSucceeds(
-      db(CAROL).ref(`requests/${CAROL}_${BOB}`).set({ from: CAROL, to: BOB, status: 'pending', ts: TS })
+      req(CAROL, CAROL, BOB)
     );
     await assertFails(db(BOB).ref(`requests/${CAROL}_${BOB}`).remove());
     await assertSucceeds(db(CAROL).ref(`requests/${CAROL}_${BOB}`).remove());
@@ -207,22 +214,22 @@ describe('sohbet istekleri', () => {
     await env.withSecurityRulesDisabled((ctx) =>
       ctx.database().ref(`requests/${id}`).set({ from: CAROL, to: BOB, status: 'rejected', ts: Date.now() - 3600000 })
     );
-    await assertFails(db(CAROL).ref(`requests/${id}`).set({ from: CAROL, to: BOB, status: 'pending', ts: TS }));
+    await assertFails(req(CAROL, CAROL, BOB));
     await env.withSecurityRulesDisabled((ctx) => ctx.database().ref(`requests/${id}/ts`).set(Date.now() - 2 * 86400000));
-    await assertSucceeds(db(CAROL).ref(`requests/${id}`).set({ from: CAROL, to: BOB, status: 'pending', ts: TS }));
+    await assertSucceeds(req(CAROL, CAROL, BOB));
   });
   it('karşı taraf zaten istek göndermişse ters istek gönderilemez', async () => {
     await env.withSecurityRulesDisabled((ctx) =>
       ctx.database().ref(`requests/${BOB}_${CAROL}`).set({ from: BOB, to: CAROL, status: 'pending', ts: 1 })
     );
     await assertFails(
-      db(CAROL).ref(`requests/${CAROL}_${BOB}`).set({ from: CAROL, to: BOB, status: 'pending', ts: TS })
+      req(CAROL, CAROL, BOB)
     );
   });
   it('engellenen kullanıcı istek gönderemez', async () => {
     await assertSucceeds(db(ALICE).ref(`blocks/${ALICE}/${CAROL}`).set(true));
     await assertFails(
-      db(CAROL).ref(`requests/${CAROL}_${ALICE}`).set({ from: CAROL, to: ALICE, status: 'pending', ts: TS })
+      req(CAROL, CAROL, ALICE)
     );
   });
 });
@@ -283,9 +290,10 @@ describe('mesajlar', () => {
     await assertFails(db(BOB).ref(`messages/${AB}/m1/text`).set('Değişti'));
     await assertFails(db(BOB).ref(`messages/${AB}/m1`).remove());
   });
-  it('sahibi kendi mesajını düzenleyebilir ve silebilir', async () => {
-    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m1`).update({ text: 'Merhaba!', editedAt: TS }));
-    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m1`).remove());
+  it('sahibi kendi (yeni) mesajını düzenleyebilir ve silebilir', async () => {
+    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m9`).set({ from: ALICE, text: 'Merhaba', ts: TS }));
+    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m9`).update({ text: 'Merhaba!', editedAt: TS }));
+    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m9`).remove());
   });
   it('mesaj zamanı sonradan değiştirilemez', async () => {
     await assertFails(db(ALICE).ref(`messages/${AB}/m1/ts`).set(TS));
@@ -295,16 +303,153 @@ describe('mesajlar', () => {
     await assertFails(db(BOB).ref(`messages/${AB}`).get());
     await assertFails(db(BOB).ref(`messages/${AB}/m2`).set({ from: BOB, text: 'x', ts: TS }));
   });
-  it('ek verisini yalnızca mesajın sahibi aynı güncellemede yazabilir', async () => {
-    await assertSucceeds(
-      db(BOB).ref().update({
-        [`messages/${AB}/m3`]: { from: BOB, ts: TS, attachment: { name: 'a.txt', size: 3, type: 'text/plain', inline: true } },
-        [`attachments/${AB}/m3`]: 'data:text/plain;base64,YWJj',
+  it('ek yalnızca bu mesajın Storage yoluna işaret edebilir; javascript: gibi adresler yazılamaz', async () => {
+    const att = (path) => ({ path, name: 'a.pdf', size: 3, type: 'application/pdf' });
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/m3`).set({ from: BOB, ts: TS, attachment: att(`chats/${AB}/m3/a.pdf`) }));
+    await assertFails(db(BOB).ref(`messages/${AB}/m4`).set({ from: BOB, ts: TS, attachment: att(`chats/baska/m4/a.pdf`) }));
+    await assertFails(db(BOB).ref(`messages/${AB}/m5`).set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m5/a.pdf`), url: 'javascript:alert(1)' } }));
+    await assertFails(db(BOB).ref(`messages/${AB}/m6`).set({ from: BOB, ts: TS, attachment: { ...att(`chats/${AB}/m6/a.pdf`), size: 26214401 } }));
+    // Eski satır içi base64 ek düğümü artık yok.
+    await assertFails(db(BOB).ref(`attachments/${AB}/m3`).set('data:text/plain;base64,YWJj'));
+  });
+});
+
+describe('mesaj işlemleri (Aşama 4)', () => {
+  it('sahibi 15 dakika içinde düzenleyebilir, "düzenlendi" zamanı zorunlu', async () => {
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/n1`).set({ from: BOB, text: 'ilk', ts: TS }));
+    await assertFails(db(BOB).ref(`messages/${AB}/n1`).update({ text: 'ikinci' }));
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/n1`).update({ text: 'ikinci', editedAt: TS }));
+  });
+  it('15 dakikadan eski mesaj düzenlenemez', async () => {
+    await assertFails(db(ALICE).ref(`messages/${AB}/m1`).update({ text: 'geç düzenleme', editedAt: TS }));
+  });
+  it('herkesten silme: metin ve ek kaldırılır, geri alınamaz', async () => {
+    await assertFails(db(ALICE).ref(`messages/${AB}/m1`).update({ deleted: true }));
+    await assertSucceeds(db(ALICE).ref(`messages/${AB}/m1`).update({ text: null, attachment: null, deleted: true }));
+    await assertFails(db(ALICE).ref(`messages/${AB}/m1`).update({ text: 'geri', editedAt: TS }));
+    await assertFails(db(BOB).ref(`messages/${AB}/m1`).update({ text: null, deleted: true }));
+  });
+  it('üyeler kendi adına tepki bırakır; başkası adına veya üye olmayan bırakamaz', async () => {
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/m1/reactions/${BOB}`).set('👍'));
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/m1/reactions/${BOB}`).remove());
+    await assertFails(db(BOB).ref(`messages/${AB}/m1/reactions/${ALICE}`).set('👍'));
+    await assertFails(db(CAROL).ref(`messages/${AB}/m1/reactions/${CAROL}`).set('👍'));
+    await assertFails(db(BOB).ref(`messages/${AB}/yok/reactions/${BOB}`).set('👍'));
+  });
+  it('yanıt ve iletildi bilgisi sonradan değiştirilemez', async () => {
+    await assertSucceeds(db(BOB).ref(`messages/${AB}/n2`).set({ from: BOB, text: 'yanıt', ts: TS, replyTo: 'm1', forwarded: true }));
+    await assertFails(db(BOB).ref(`messages/${AB}/n2/replyTo`).set('baska'));
+    await assertFails(db(BOB).ref(`messages/${AB}/n2/forwarded`).set(false));
+  });
+  it('"benden sil" listesi yalnızca sahibine açık', async () => {
+    await assertSucceeds(db(BOB).ref(`hidden/${BOB}/${AB}/m1`).set(true));
+    await assertFails(db(ALICE).ref(`hidden/${BOB}`).get());
+  });
+  it('istemci sistem mesajı yazamaz', async () => {
+    await assertFails(db(BOB).ref(`messages/${AB}/s1`).set({ from: BOB, ts: TS, system: 'member_added', text: 'x' }));
+  });
+});
+
+describe('engelleme, şikâyet ve istek sınırı', () => {
+  it('beni engelleyen kişiye bire bir mesaj gönderemem', async () => {
+    await assertSucceeds(db(ALICE).ref(`blocks/${ALICE}/${BOB}`).set(true));
+    await assertFails(db(BOB).ref(`messages/${AB}/b1`).set({ from: BOB, text: 'selam', ts: TS }));
+    await assertSucceeds(db(ALICE).ref(`messages/${AB}/b2`).set({ from: ALICE, text: 'selam', ts: TS }));
+  });
+  it('şikâyeti kullanıcı oluşturur, yalnızca yönetici okur/siler', async () => {
+    const r = { from: BOB, target: ALICE, chatId: AB, messageId: 'm1', reason: 'Rahatsız edici mesaj', ts: TS };
+    await assertSucceeds(db(BOB).ref('reports/r1').set(r));
+    await assertFails(db(BOB).ref('reports/r2').set({ ...r, from: ALICE }));
+    await assertFails(db(BOB).ref('reports/r1').get());
+    await assertFails(db(BOB).ref('reports/r1').remove());
+    await assertSucceeds(db(ADMIN).ref('reports').get());
+    await assertSucceeds(db(ADMIN).ref('reports/r1').remove());
+  });
+  it('istek kota sayacı artırılmadan istek gönderilemez', async () => {
+    await assertFails(
+      db(CAROL).ref(`requests/${CAROL}_${ALICE}`).set({ from: CAROL, to: ALICE, status: 'pending', ts: TS })
+    );
+  });
+  it('günde en fazla 20 istek', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.database().ref(`requestQuota/${CAROL}`).set({ windowStart: Date.now() - 1000, count: 20 })
+    );
+    await assertFails(req(CAROL, CAROL, ALICE, { windowStart: Date.now() - 1000, count: 21 }));
+    await assertFails(db(CAROL).ref(`requestQuota/${CAROL}`).set({ windowStart: TS, count: 1 }));
+    await assertFails(db(CAROL).ref(`requestQuota/${CAROL}/count`).set(0));
+  });
+  it('24 saat dolunca kota sıfırlanır', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.database().ref(`requestQuota/${CAROL}`).set({ windowStart: Date.now() - 2 * 86400000, count: 20 })
+    );
+    await assertSucceeds(req(CAROL, CAROL, ALICE));
+  });
+});
+
+describe('gizlilik ve ayarlar', () => {
+  it('ayarlar yalnızca sahibine açık', async () => {
+    await assertSucceeds(db(ALICE).ref(`settings/${ALICE}`).set({ notifPreview: false, showLastSeen: false, showOnline: true }));
+    await assertFails(db(BOB).ref(`settings/${ALICE}`).get());
+    await assertFails(db(ALICE).ref(`settings/${ALICE}/sifre`).set('x'));
+  });
+  it('son görülme gizlenince başkası okuyamaz; gizleyen de başkasınınkini göremez', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.database().ref().update({
+        [`presence/${ALICE}`]: { online: true, lastSeen: 1 },
+        [`presence/${BOB}`]: { online: false, lastSeen: 2 },
+        [`settings/${ALICE}/showLastSeen`]: false,
       })
     );
-    await assertFails(db(BOB).ref(`attachments/${AB}/m1`).set('data:text/plain;base64,YWJj'));
-    await assertFails(db(CAROL).ref(`attachments/${AB}/m3`).get());
-    await assertSucceeds(db(ALICE).ref(`attachments/${AB}/m3`).get());
+    await assertFails(db(BOB).ref(`presence/${ALICE}/lastSeen`).get());
+    await assertFails(db(ALICE).ref(`presence/${BOB}/lastSeen`).get());
+    await assertSucceeds(db(ALICE).ref(`presence/${ALICE}/lastSeen`).get());
+    await assertSucceeds(db(CAROL).ref(`presence/${BOB}/lastSeen`).get());
+  });
+  it('çevrimiçi durumu gizlenebilir', async () => {
+    await env.withSecurityRulesDisabled((ctx) => ctx.database().ref(`settings/${ALICE}/showOnline`).set(false));
+    await assertFails(db(BOB).ref(`presence/${ALICE}/online`).get());
+  });
+  it('profil fotoğrafı yalnızca Firebase Storage adresi olabilir', async () => {
+    await assertFails(db(ALICE).ref(`users/${ALICE}/photoURL`).set('https://kotu.example.com/a.png'));
+    await assertSucceeds(
+      db(ALICE).ref(`users/${ALICE}/photoURL`).set('https://firebasestorage.googleapis.com/v0/b/x/o/avatars%2Fa.jpg?alt=media')
+    );
+  });
+});
+
+describe('gruplar', () => {
+  const G = '-Ngrup1';
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.database().ref(`chats/${G}`).set({
+        type: 'group',
+        name: 'Aile',
+        members: { [ALICE]: true, [BOB]: true, [CAROL]: true },
+        admins: { [ALICE]: true },
+        createdBy: ALICE,
+        createdAt: 1,
+      })
+    );
+  });
+  it('istemci grup kuramaz (sunucu fonksiyonu kurar)', async () => {
+    await assertFails(
+      db(ALICE).ref('chats/-Nyeni').set({ type: 'group', name: 'X', members: { [ALICE]: true }, createdAt: TS })
+    );
+  });
+  it('yalnızca grup yöneticisi adı değiştirir', async () => {
+    await assertSucceeds(db(ALICE).ref(`chats/${G}/name`).set('Aile 💚'));
+    await assertFails(db(BOB).ref(`chats/${G}/name`).set('Hack'));
+    await assertFails(db(ALICE).ref(`chats/${G}/name`).set('x'.repeat(61)));
+  });
+  it('üyeler ve yöneticiler istemciden değiştirilemez', async () => {
+    await assertFails(db(ALICE).ref(`chats/${G}/members/${ADMIN}`).set(true));
+    await assertFails(db(ALICE).ref(`chats/${G}/admins/${BOB}`).set(true));
+    await assertFails(db(BOB).ref(`chats/${G}/members/${BOB}`).remove());
+  });
+  it('grup üyeleri mesaj yazar ve okur; üye olmayan okuyamaz', async () => {
+    await assertSucceeds(db(CAROL).ref(`messages/${G}/g1`).set({ from: CAROL, text: 'Merhaba aile', ts: TS }));
+    await assertSucceeds(db(BOB).ref(`messages/${G}`).orderByChild('ts').limitToLast(50).get());
+    await assertFails(db(ADMIN).ref(`messages/${G}`).get());
   });
 });
 

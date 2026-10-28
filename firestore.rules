@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Firestore yalnızca Storage kurallarının sohbet üyeliğini okuması için kullanılır
+// (chatAccess/{chatId}; Cloud Functions yazar). İstemciler hiçbir şey okuyamaz/yazamaz.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

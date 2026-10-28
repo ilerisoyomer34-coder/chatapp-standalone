@@ -20,11 +20,14 @@
 //       (Yönetici, kişinin gerçekten o olduğunu doğruladıktan sonra) rezerve adı yeni hesaba bağlar.
 //   node scripts/migrate-legacy.mjs chats --file backup/legacy-db-....json
 //       İki tarafı da bağlanmış eski bire bir sohbetleri ve metin mesajlarını yeni yapıya kopyalar.
+//   node scripts/migrate-legacy.mjs sync-access
+//       Tüm sohbetlerin Storage erişim belgelerini (Firestore chatAccess) yeniden yazar.
 //   node scripts/migrate-legacy.mjs delete-legacy --yes
 //       Eski /db düğümünü kalıcı olarak siler (önce mutlaka backup al).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const DATABASE_URL = process.env.DATABASE_URL || 'https://chatapp-d8a5b-default-rtdb.europe-west1.firebasedatabase.app';
 const RESERVED_PREFIX = 'legacy:';
@@ -154,6 +157,20 @@ export async function chats(db, legacy) {
   return copied;
 }
 
+// Storage kurallarının okuduğu chatAccess/{chatId} belgelerini mevcut tüm sohbetler için yeniden yazar
+// (fonksiyonlar dağıtılmadan önce kurulmuş sohbetler için bir kez çalıştır).
+export async function syncAccess(db, fs) {
+  const chatsVal = (await db.ref('chats').get()).val() || {};
+  let n = 0;
+  for (const [chatId, chat] of Object.entries(chatsVal)) {
+    const onlyTrue = (m) => Object.fromEntries(Object.entries(m || {}).filter(([, v]) => v === true));
+    await fs.collection('chatAccess').doc(chatId).set({ type: chat.type || 'direct', members: onlyTrue(chat.members), admins: onlyTrue(chat.admins) });
+    n++;
+  }
+  console.log(`${n} sohbetin erişim belgesi yazıldı.`);
+  return n;
+}
+
 export async function deleteLegacy(db, yes) {
   if (!yes) throw new Error('Silmek için --yes ekle (önce backup al!).');
   await db.ref('db').remove();
@@ -174,6 +191,7 @@ async function main() {
       if (pos.length !== 2) throw new Error('Kullanım: link <eskiKullaniciAdi> <yeniUid>');
       await link(db, pos[0], pos[1]);
     } else if (cmd === 'chats') await chats(db, await loadLegacy(db, flags.file));
+    else if (cmd === 'sync-access') await syncAccess(db, getFirestore(db.app));
     else if (cmd === 'delete-legacy') await deleteLegacy(db, flags.yes === true);
     else throw new Error(`Bilinmeyen komut: ${cmd}`);
   } finally {

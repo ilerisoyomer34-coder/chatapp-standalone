@@ -11,8 +11,12 @@ export interface ChatMessage {
   text?: string;
   ts?: number;
   deleted?: boolean;
+  system?: string;
   attachment?: Attachment;
 }
+
+// Sunucunun yazdığı grup sistem mesajı türleri; yalnızca bunlar okunmamış sayar ve bildirim gönderir.
+export const NOTIFYING_SYSTEM_TYPES = new Set(['created', 'added']);
 
 export function truncate(value: string, max: number): string {
   const chars = Array.from(value);
