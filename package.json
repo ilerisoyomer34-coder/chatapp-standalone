@@ -1,0 +1,31 @@
+{
+  "name": "chatapp",
+  "private": true,
+  "version": "2.0.0",
+  "description": "ChatApp — Ömer İlerisoy tarafından geliştirilen sohbet uygulaması",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "build:functions": "npm --prefix functions run build",
+    "test:emulator": "npm run build:functions && firebase emulators:exec --only database,auth --project demo-chatapp \"vitest run --config vitest.emulator.config.js\""
+  },
+  "dependencies": {
+    "firebase": "^13.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "firebase-admin": "^14.5.0",
+    "firebase-tools": "^15.34.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}
